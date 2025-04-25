@@ -1,0 +1,44 @@
+.MenuBar {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+
+  button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 14px;
+    color: #1b1b1b;
+
+    svg {
+      width: 16px;
+      height: 16px;
+      stroke-width: 1;
+    }
+
+    &:hover {
+      background-color: #00000010;
+      color: #000;
+    }
+  }
+
+  .CloseBtn {
+    color: #525252;
+
+    &:hover {
+      color: #fff;
+      background-color: #e00000;
+    }
+  }
+}
+
+@media screen and (max-width: 300px) {
+  .MenuBar {
+    justify-content: flex-end;
+
+    .StorageControls {
+      display: none;
+    }
+  }
+}

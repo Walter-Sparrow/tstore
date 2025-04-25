@@ -1,0 +1,22 @@
+.App {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: url("images/bg.png") no-repeat center center fixed;
+  background-size: cover;
+}
+
+.Content {
+  flex: 1;
+  display: flex;
+  overflow: auto;
+  padding: 24px;
+  gap: 1em;
+}
+
+@media (max-width: 600px) {
+  .Content {
+    padding: 16px;
+  }
+}
