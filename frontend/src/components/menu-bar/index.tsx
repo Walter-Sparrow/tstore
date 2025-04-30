@@ -2,20 +2,23 @@ import { Minus, Search, Settings, Square, X } from "lucide-react";
 import styles from "./styles.module.css";
 import { Minimize, ToggleFullscreen, Close } from "@/../wailsjs/go/main/App";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Button } from "../ui/button";
 
 export function MenuBar() {
   return (
     <div
-      className={styles.MenuBar}
+      className="flex items-center justify-end"
       style={{ "--wails-draggable": "drag" } as React.CSSProperties}
     >
-      <div className={styles.StorageControls}>
-        <button type="button" className={styles.SettingsBtn}>
-          <Settings className={styles.SettingsIcon} />
-        </button>
+      <div className="flex items-center gap-2">
+        <Button size="icon" variant="ghost">
+          <Settings />
+        </Button>
         <Popover>
           <PopoverTrigger>
-            <Search className={styles.SearchIcon} />
+            <Button size="icon" variant="ghost">
+              <Search />
+            </Button>
           </PopoverTrigger>
           <PopoverContent>Place content for the popover here.</PopoverContent>
         </Popover>

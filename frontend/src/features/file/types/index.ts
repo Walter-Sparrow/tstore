@@ -3,4 +3,5 @@ export interface File {
   name: string;
   size?: number;
   createdAt: string;
+  status: "local" | "cloud";
 }
