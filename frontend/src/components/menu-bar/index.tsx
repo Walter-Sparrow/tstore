@@ -14,14 +14,6 @@ export function MenuBar() {
         <Button size="icon" variant="ghost">
           <Settings />
         </Button>
-        <Popover>
-          <PopoverTrigger>
-            <Button size="icon" variant="ghost">
-              <Search />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent>Place content for the popover here.</PopoverContent>
-        </Popover>
       </div>
       <div className={styles.AppControls}>
         <button type="button" className={styles.HideBtn} onClick={Minimize}>

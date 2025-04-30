@@ -2,7 +2,23 @@ import { ColumnDef } from "@tanstack/react-table";
 import { File } from "../types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cx } from "class-variance-authority";
-import { Cloud, File as FileIcon, FileText, HardDrive } from "lucide-react";
+import {
+  Cloud,
+  File as FileIcon,
+  FileText,
+  HardDrive,
+  MoreHorizontal,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { FileDropdown } from "../components/file-dropdown";
 
 export const columns: ColumnDef<File>[] = [
   {
@@ -92,6 +108,13 @@ export const columns: ColumnDef<File>[] = [
         month: "2-digit",
         day: "2-digit",
       });
+    },
+  },
+  {
+    id: "actions",
+    cell: ({ row }) => {
+      const file = row.original;
+      return <FileDropdown file={file} />;
     },
   },
 ];

@@ -14,14 +14,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { File } from "../../types";
+import { File, SelectedRows } from "../../types";
 import { cx } from "class-variance-authority";
+import { Dispatch, SetStateAction } from "react";
 
 interface DataTableProps<TValue> {
   columns: ColumnDef<File, TValue>[];
   data: File[];
   selectedFile: string | undefined;
   selectFile: (id: string | undefined) => void;
+  selectedRows: SelectedRows;
+  setSelectedRows: Dispatch<SetStateAction<SelectedRows>>;
 }
 
 export function DataTable<TValue>({
@@ -29,11 +32,18 @@ export function DataTable<TValue>({
   data,
   selectFile,
   selectedFile,
+  selectedRows,
+  setSelectedRows,
 }: DataTableProps<TValue>) {
   const table = useReactTable({
     data,
     columns,
+    getRowId: (row) => row.id,
     getCoreRowModel: getCoreRowModel(),
+    onRowSelectionChange: setSelectedRows,
+    state: {
+      rowSelection: selectedRows,
+    },
   });
 
   return (

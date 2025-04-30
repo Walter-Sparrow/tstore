@@ -5,3 +5,7 @@ export interface File {
   createdAt: string;
   status: "local" | "cloud";
 }
+
+export interface SelectedRows {
+  [id: File["id"]]: boolean;
+}
