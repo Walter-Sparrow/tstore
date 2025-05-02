@@ -6,10 +6,6 @@ export function Close() {
   return window['go']['main']['App']['Close']();
 }
 
-export function Greet(arg1) {
-  return window['go']['main']['App']['Greet'](arg1);
-}
-
 export function Minimize() {
   return window['go']['main']['App']['Minimize']();
 }

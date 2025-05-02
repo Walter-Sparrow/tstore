@@ -68,7 +68,7 @@ export function FileCard({
 
   return (
     <Card
-      className={`relative transition-colors gap-0 p-0 backdrop-blur-sm bg-white/50  ${
+      className={`relative transition-colors gap-0 p-0 cursor-pointer hover:border-primary/50 backdrop-blur-sm bg-white/50  ${
         selected
           ? "border-primary bg-primary/10 dark:bg-primary/20"
           : detailsOpened

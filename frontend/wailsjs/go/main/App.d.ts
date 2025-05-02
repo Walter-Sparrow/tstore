@@ -3,8 +3,6 @@
 
 export function Close():Promise<void>;
 
-export function Greet(arg1:string):Promise<string>;
-
 export function Minimize():Promise<void>;
 
 export function ToggleFullscreen():Promise<void>;

@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/card";
 import { DataTable } from "@/features/file/components/data-table";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { File, SelectedRows } from "../../types";
 import { SearchInput } from "@/components/search-input";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,9 @@ export function Files({
 }: Props) {
   const [view, setView] = useState<"grid" | "list">("list");
   const [selectedRows, setSelectedRows] = useState<SelectedRows>({});
+  const [filter, setFilter] = useState<string>("");
+
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const accumulatedFilesSize = mockData.reduce(
     (acc, file) => acc + (file.size || 0),
@@ -48,16 +51,26 @@ export function Files({
   );
   const totalFiles = mockData.length;
 
+  const filteredFiles = mockData.filter((file) =>
+    file.name.toLowerCase().includes(filter.toLowerCase())
+  );
+
   return (
     <Card className="w-full h-full pt-3 gap-2 flex-2 relative">
       <CardHeader className="flex flex-row justify-between px-3">
         <div className="flex items-center gap-2">
-          <Button size="icon">
+          <Button size="icon" onClick={() => inputRef.current?.click()}>
             <Plus className="!text-white" />
           </Button>
+          <input ref={inputRef} type="file" className="hidden" />
           <div className="relative flex items-center max-w-2xl ">
             <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 transform" />
-            <Input placeholder="Search files..." className=" pl-8" />
+            <Input
+              placeholder="Search files..."
+              className=" pl-8"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            />
           </div>
         </div>
         <div className="flex flex-row items-center space-x-2">
@@ -101,11 +114,11 @@ export function Files({
             selectedFile={selectedFile}
             selectFile={selectFile}
             columns={columns}
-            data={mockData}
+            data={filteredFiles}
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-            {mockData.map((file) => (
+            {filteredFiles.map((file) => (
               <FileCard
                 key={file.id}
                 file={file}
