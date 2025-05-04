@@ -1,19 +1,34 @@
-import { Minus, Search, Settings, Square, X } from "lucide-react";
+import { ArrowLeft, Minus, Settings, Square, X } from "lucide-react";
 import styles from "./styles.module.css";
 import { Minimize, ToggleFullscreen, Close } from "@/../wailsjs/go/main/App";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Button } from "../ui/button";
 
-export function MenuBar() {
+interface Props {
+  currentView: "manager" | "settings";
+  setView: (view: "manager" | "settings") => void;
+}
+
+export function MenuBar({ currentView, setView }: Props) {
   return (
     <div
       className="flex items-center justify-end"
       style={{ "--wails-draggable": "drag" } as React.CSSProperties}
     >
       <div className="flex items-center gap-2">
-        <Button size="icon" variant="ghost">
-          <Settings />
-        </Button>
+        {currentView === "manager" ? (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setView("settings")}
+          >
+            <Settings />
+          </Button>
+        ) : (
+          <Button variant="ghost" onClick={() => setView("manager")}>
+            <ArrowLeft />
+            Settings
+          </Button>
+        )}
       </div>
       <div className={styles.AppControls}>
         <button type="button" className={styles.HideBtn} onClick={Minimize}>

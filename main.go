@@ -2,6 +2,8 @@ package main
 
 import (
 	"embed"
+	"log"
+	"tstore/internal/config"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -12,9 +14,14 @@ import (
 var assets embed.FS
 
 func main() {
-	app := NewApp()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("cannot load config: %v", err)
+	}
 
-	err := wails.Run(&options.App{
+	app := &App{cfg: cfg}
+
+	err = wails.Run(&options.App{
 		Title:  "tstore",
 		Width:  1024,
 		Height: 768,
