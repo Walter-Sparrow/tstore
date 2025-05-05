@@ -1,7 +1,10 @@
 import { ArrowLeft, Minus, Settings, Square, X } from "lucide-react";
 import styles from "./styles.module.css";
 import { Minimize, ToggleFullscreen, Close } from "@/../wailsjs/go/main/App";
+import { Environment } from "@/../wailsjs//runtime/runtime";
 import { Button } from "../ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { cx } from "class-variance-authority";
 
 interface Props {
   currentView: "manager" | "settings";
@@ -9,9 +12,19 @@ interface Props {
 }
 
 export function MenuBar({ currentView, setView }: Props) {
+  const { data } = useQuery({
+    queryKey: ["platform"],
+    queryFn: Environment,
+  });
+
+  const isWindows = data?.platform === "windows";
+
   return (
     <div
-      className="flex items-center justify-end"
+      className={cx(
+        "flex items-center",
+        isWindows ? "justify-between" : "justify-end"
+      )}
       style={{ "--wails-draggable": "drag" } as React.CSSProperties}
     >
       <div className="flex items-center gap-2">
@@ -30,20 +43,25 @@ export function MenuBar({ currentView, setView }: Props) {
           </Button>
         )}
       </div>
-      <div className={styles.AppControls}>
-        <button type="button" className={styles.HideBtn} onClick={Minimize}>
-          <Minus className={styles.HideIcon} />
-        </button>
-        <button
-          type="button"
-          className={styles.MaximizeBtn}
-          onClick={ToggleFullscreen}
+      <div
+        className={cx("flex items-center gap-2", {
+          hidden: !isWindows,
+        })}
+      >
+        <Button size="icon" variant="ghost" onClick={Minimize}>
+          <Minus />
+        </Button>
+        <Button size="icon" variant="ghost" onClick={ToggleFullscreen}>
+          <Square />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={Close}
+          className="hover:bg-red-400 hover:text-white"
         >
-          <Square className={styles.MaximizeIcon} />
-        </button>
-        <button type="button" className={styles.CloseBtn} onClick={Close}>
-          <X className={styles.CloseIcon} />
-        </button>
+          <X />
+        </Button>
       </div>
     </div>
   );

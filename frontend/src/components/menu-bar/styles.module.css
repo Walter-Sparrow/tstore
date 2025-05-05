@@ -31,10 +31,6 @@
   }
 }
 
-.AppControls {
-  display: none;
-}
-
 @media screen and (max-width: 300px) {
   .MenuBar {
     justify-content: flex-end;

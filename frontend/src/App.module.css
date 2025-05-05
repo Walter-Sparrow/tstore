@@ -5,6 +5,7 @@
   width: 100vw;
   background: url("images/bg-4-upscale.png") no-repeat center center fixed;
   background-size: cover;
+  overflow: hidden;
 }
 
 .Content {
