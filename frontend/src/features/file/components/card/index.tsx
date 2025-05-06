@@ -1,11 +1,8 @@
 import {
   DownloadCloud,
-  List,
   PanelRightClose,
   PanelRightOpen,
-  Plus,
   Search,
-  Sidebar,
   Trash2,
   UploadCloud,
   X,
@@ -19,12 +16,12 @@ import {
 } from "@/components/ui/card";
 import { DataTable } from "@/features/file/components/data-table";
 import { Button } from "@/components/ui/button";
-import { useRef, useState } from "react";
-import { File, SelectedRows } from "../../types";
-import { SearchInput } from "@/components/search-input";
+import { useState } from "react";
+import { SelectedRows } from "../../types";
 import { Input } from "@/components/ui/input";
 import { ViewSwitch } from "@/components/view-switch";
 import { FileCard } from "../file-card";
+import { UploadButton } from "../upload-button";
 
 interface Props {
   collapsed: boolean;
@@ -43,8 +40,6 @@ export function Files({
   const [selectedRows, setSelectedRows] = useState<SelectedRows>({});
   const [filter, setFilter] = useState<string>("");
 
-  const inputRef = useRef<HTMLInputElement>(null);
-
   const accumulatedFilesSize = mockData.reduce(
     (acc, file) => acc + (file.size || 0),
     0
@@ -59,10 +54,7 @@ export function Files({
     <Card className="w-full h-full pt-3 gap-2 flex-2 relative">
       <CardHeader className="flex flex-row justify-between px-3">
         <div className="flex items-center gap-2">
-          <Button size="icon" onClick={() => inputRef.current?.click()}>
-            <Plus className="!text-white" />
-          </Button>
-          <input ref={inputRef} type="file" className="hidden" />
+          <UploadButton />
           <div className="relative flex items-center max-w-2xl ">
             <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 transform" />
             <Input

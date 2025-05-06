@@ -1,6 +1,11 @@
 package model
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+var ErrNotFound = errors.New("record not found")
 
 type FileState int
 
@@ -10,9 +15,11 @@ const (
 )
 
 type FileRecord struct {
-	Name        string
-	State       FileState
-	Description string
-	UploadedAt  time.Time
-	ChunkIds    []string
+	Name        string    `json:"name"`
+	State       FileState `json:"state"`
+	Description string    `json:"description"`
+	Size        int64     `json:"size"`
+	Checksum    string    `json:"checksum"`
+	UploadedAt  time.Time `json:"uploaded_at"`
+	ChunkIds    []string  `json:"chunk_ids"`
 }

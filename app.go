@@ -3,19 +3,49 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"tstore/internal/config"
+	"tstore/internal/metadata"
+	"tstore/internal/telegram"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type App struct {
-	ctx context.Context
-	cfg *config.Config
+	ctx      context.Context
+	cfg      *config.Config
+	uploader *telegram.Uploader
+	client   *telegram.Client
+	store    metadata.Store
+}
+
+func (a *App) initServices() error {
+	newCfg, err := config.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+	a.cfg = newCfg
+
+	a.client = telegram.NewClient(a.cfg.BotToken)
+	if a.store == nil {
+		a.store, err = metadata.NewDefaultJSONStore()
+		if err != nil {
+			return fmt.Errorf("init metadata store: %w", err)
+		}
+	}
+
+	const chunkSize = 5 * 1024 * 1024
+	a.uploader = telegram.NewUploader(a.client, a.store, a.cfg.SyncFolder, chunkSize)
+
+	return nil
 }
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	if err := a.initServices(); err != nil {
+		log.Fatalf("failed to init services: %v", err)
+	}
 }
 
 func (a *App) Minimize() {
@@ -45,22 +75,40 @@ func (a *App) SelectDirectory() (string, error) {
 	return dir, nil
 }
 
-func (a *App) UpdateConfig(newCfg *config.Config) error {
-	info, err := os.Stat(newCfg.SyncFolder)
+func (a *App) SelectFile() (string, error) {
+	file, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title:                "Choose a File",
+		DefaultDirectory:     "",
+		CanCreateDirectories: false,
+		ShowHiddenFiles:      false,
+	})
+
 	if err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("sync folder %q does not exist", newCfg.SyncFolder)
-		}
-		return fmt.Errorf("cannot access sync folder %q: %w", newCfg.SyncFolder, err)
+		return "", err
 	}
 
-	if !info.IsDir() {
-		return fmt.Errorf("sync folder %q is not a directory", newCfg.SyncFolder)
+	return file, nil
+}
+
+func (a *App) UpdateConfig(newCfg *config.Config) error {
+	if err := a.validateAndSaveConfig(newCfg); err != nil {
+		return err
 	}
 
-	a.cfg = newCfg
-	if err := config.SaveConfig(a.cfg); err != nil {
-		return fmt.Errorf("failed to save config: %w", err)
+	if err := a.initServices(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) validateAndSaveConfig(newCfg *config.Config) error {
+	if info, err := os.Stat(newCfg.SyncFolder); err != nil || !info.IsDir() {
+		return fmt.Errorf("invalid sync_folder %q", newCfg.SyncFolder)
+	}
+
+	if err := config.SaveConfig(newCfg); err != nil {
+		return fmt.Errorf("saving config: %w", err)
 	}
 
 	return nil
@@ -68,4 +116,16 @@ func (a *App) UpdateConfig(newCfg *config.Config) error {
 
 func (a *App) GetConfig() *config.Config {
 	return a.cfg
+}
+
+func (a *App) UploadFile(path string) (string, error) {
+	rec, err := a.uploader.UploadFile(a.ctx, path, a.cfg.ChatID, func(p float64) {
+		runtime.EventsEmit(a.ctx, "uploadProgress", p)
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return rec.Name, nil
 }

@@ -2,44 +2,103 @@ package ingestion
 
 import (
 	"bytes"
-	"os"
+	"errors"
+	"reflect"
+	"slices"
 	"testing"
 )
 
-func TestStreamChunks(t *testing.T) {
-	content := []byte("abcdefghijklmnopqrstuvwxyz")
-	tmpFile, err := os.CreateTemp("", "stream_test")
-	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
+func collectChunks(ch <-chan Chunk) []Chunk {
+	var out []Chunk
+	for c := range ch {
+		dataCopy := slices.Clone(c.Data)
+		out = append(out, Chunk{Index: c.Index, Data: dataCopy})
 	}
-	defer os.Remove(tmpFile.Name())
+	return out
+}
 
-	if _, err := tmpFile.Write(content); err != nil {
-		t.Fatalf("failed to write temp file: %v", err)
+type errorReader struct {
+	data []byte
+	pos  int
+	err  error
+}
+
+func (r *errorReader) Read(p []byte) (int, error) {
+	if r.pos >= len(r.data) {
+		return 0, r.err
 	}
-	tmpFile.Close()
+	n := copy(p, r.data[r.pos:])
+	r.pos += n
+	return n, nil
+}
 
-	const chunkSize = 5
-	var dataCollected []byte
-	count := 0
-	err = StreamChunks(tmpFile.Name(), chunkSize, func(index int, data []byte) error {
-		if index != count {
-			t.Errorf("expected chunk index %d, got %d", count, index)
-		}
-		dataCollected = append(dataCollected, data...)
-		count++
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("StreamChunks returned error: %v", err)
+func TestStreamChunks_PartialLastChunk(t *testing.T) {
+	content := []byte("abcdefgh")
+	r := bytes.NewReader(content)
+
+	chunksCh, errCh := StreamChunks(r, 3)
+	chunks := collectChunks(chunksCh)
+	if err := <-errCh; err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if !bytes.Equal(dataCollected, content) {
-		t.Errorf("streamed data mismatch: expected %q, got %q", content, dataCollected)
+	want := []Chunk{
+		{Index: 0, Data: []byte("abc")},
+		{Index: 1, Data: []byte("def")},
+		{Index: 2, Data: []byte("gh")},
+	}
+	if !reflect.DeepEqual(chunks, want) {
+		t.Errorf("chunks = %+v; want %+v", chunks, want)
+	}
+}
+
+func TestStreamChunks_ExactMultiple(t *testing.T) {
+	content := []byte("0123456789")
+	r := bytes.NewReader(content)
+
+	chunksCh, errCh := StreamChunks(r, 5)
+	chunks := collectChunks(chunksCh)
+	if err := <-errCh; err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 
-	expectedChunks := (len(content) + chunkSize - 1) / chunkSize
-	if count != expectedChunks {
-		t.Errorf("expected %d chunks, got %d", expectedChunks, count)
+	want := []Chunk{
+		{Index: 0, Data: []byte("01234")},
+		{Index: 1, Data: []byte("56789")},
+	}
+	if !reflect.DeepEqual(chunks, want) {
+		t.Errorf("chunks = %+v; want %+v", chunks, want)
+	}
+}
+
+func TestStreamChunks_EmptyReader(t *testing.T) {
+	content := []byte{}
+	r := bytes.NewReader(content)
+
+	chunksCh, errCh := StreamChunks(r, 4)
+	chunks := collectChunks(chunksCh)
+	if err := <-errCh; err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(chunks) != 0 {
+		t.Errorf("expected 0 chunks for empty reader, got %d", len(chunks))
+	}
+}
+
+func TestStreamChunks_ReaderError(t *testing.T) {
+	errExpected := errors.New("simulated read error")
+	r := &errorReader{data: []byte("abcde"), err: errExpected}
+
+	chunksCh, errCh := StreamChunks(r, 3)
+	chunks := collectChunks(chunksCh)
+
+	if len(chunks) != 1 {
+		t.Errorf("expected 1 chunks before error, got %d", len(chunks))
+	}
+
+	err := <-errCh
+	if err != errExpected {
+		t.Errorf("error = %v; want %v", err, errExpected)
 	}
 }

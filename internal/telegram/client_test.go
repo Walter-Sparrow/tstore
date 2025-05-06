@@ -56,9 +56,6 @@ func TestSendChunk(t *testing.T) {
 		if got := r.FormValue("chat_id"); got != "12345" {
 			t.Errorf("expected chat_id=12345, got %q", got)
 		}
-		if got := r.FormValue("caption"); got != "chunk 7" {
-			t.Errorf("expected caption=\"chunk 7\", got %q", got)
-		}
 
 		file, header, err := r.FormFile("document")
 		if err != nil {
@@ -87,7 +84,7 @@ func TestSendChunk(t *testing.T) {
 		client:  srv.Client(),
 	}
 
-	fileID, err := c.SendChunk(context.Background(), 12345, bytes.NewBufferString("chunk data"), 7)
+	fileID, err := c.SendChunk(context.Background(), "12345", bytes.NewBufferString("chunk data"), 7)
 	if err != nil {
 		t.Fatalf("SendChunk returned error: %v", err)
 	}

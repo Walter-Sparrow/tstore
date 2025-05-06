@@ -18,10 +18,18 @@ export function SelectDirectory() {
   return window['go']['main']['App']['SelectDirectory']();
 }
 
+export function SelectFile() {
+  return window['go']['main']['App']['SelectFile']();
+}
+
 export function ToggleFullscreen() {
   return window['go']['main']['App']['ToggleFullscreen']();
 }
 
 export function UpdateConfig(arg1) {
   return window['go']['main']['App']['UpdateConfig'](arg1);
+}
+
+export function UploadFile(arg1) {
+  return window['go']['main']['App']['UploadFile'](arg1);
 }

@@ -10,6 +10,10 @@ export function Minimize():Promise<void>;
 
 export function SelectDirectory():Promise<string>;
 
+export function SelectFile():Promise<string>;
+
 export function ToggleFullscreen():Promise<void>;
 
 export function UpdateConfig(arg1:config.Config):Promise<void>;
+
+export function UploadFile(arg1:string):Promise<string>;

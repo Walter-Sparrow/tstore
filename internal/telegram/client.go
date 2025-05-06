@@ -51,7 +51,7 @@ func (c *Client) SendText(ctx context.Context, chatID int64, text string) (messa
 	return res.Result.MessageID, nil
 }
 
-func (c *Client) SendChunk(ctx context.Context, chatID int64, chunk io.Reader, chunkIndex int) (fileID string, err error) {
+func (c *Client) SendChunk(ctx context.Context, chatID string, chunk io.Reader, chunkIndex int) (fileID string, err error) {
 	url := fmt.Sprintf("%s/sendDocument", c.baseURL)
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -62,8 +62,7 @@ func (c *Client) SendChunk(ctx context.Context, chatID int64, chunk io.Reader, c
 	if _, err := io.Copy(part, chunk); err != nil {
 		return "", err
 	}
-	writer.WriteField("chat_id", fmt.Sprintf("%d", chatID))
-	writer.WriteField("caption", fmt.Sprintf("chunk %d", chunkIndex))
+	writer.WriteField("chat_id", chatID)
 	writer.Close()
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, body)
