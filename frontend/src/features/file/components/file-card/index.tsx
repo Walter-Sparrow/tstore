@@ -1,58 +1,30 @@
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
-import { File, SelectedRows } from "../../types";
+import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Cloud,
-  CloudOff,
-  Download,
-  File as FileIcon,
-  HardDrive,
-  MoreVertical,
-  Trash2,
-  Upload,
-} from "lucide-react";
+import { Cloud, File as FileIcon, HardDrive, MoreVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Dispatch, SetStateAction } from "react";
 import { CheckedState } from "@radix-ui/react-checkbox";
 import { FileDropdown } from "../file-dropdown";
+import { model } from "../../../../../wailsjs/go/models";
+import { useFilesContext } from "@/lib/files-context";
 
 interface Props {
-  file: File;
+  file: model.FileRecord;
   detailsOpened: boolean;
   selected: boolean;
-  selectFile: (id: string | undefined) => void;
-  setSelectedRows: Dispatch<SetStateAction<SelectedRows>>;
 }
 
-export function FileCard({
-  file,
-  detailsOpened,
-  selected,
-  selectFile,
-  setSelectedRows,
-}: Props) {
+export function FileCard({ file, detailsOpened, selected }: Props) {
+  const { setSelectedRows, selectFile } = useFilesContext();
+
   const handleCheckboxChange = (state: CheckedState) => {
     if (state === true) {
       setSelectedRows((prev) => ({
         ...prev,
-        [file.id]: true,
+        [file.name]: true,
       }));
     } else {
       setSelectedRows((prev) => {
-        const { [file.id]: _, ...rest } = prev;
+        const { [file.name]: _, ...rest } = prev;
         return rest;
       });
     }
@@ -62,7 +34,7 @@ export function FileCard({
     if (detailsOpened) {
       selectFile(undefined);
     } else {
-      selectFile(file.id);
+      selectFile(file.name);
     }
   };
 
@@ -83,7 +55,7 @@ export function FileCard({
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <FileIcon className="h-8 w-8 text-primary ml-[-4px]" />
-            {file.status === "local" ? (
+            {file.state === 1 ? (
               <Badge
                 variant="outline"
                 className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-400"
@@ -111,8 +83,16 @@ export function FileCard({
           </div>
         </div>
         <h3 className="font-medium">{file.name}</h3>
-        <p className="text-sm text-slate-500">{file.size} MB</p>
-        <p className="text-sm text-slate-500">{file.createdAt}</p>
+        <p className="text-sm text-slate-500">
+          {(file.size / 1024 / 1024).toFixed(2)} MB
+        </p>
+        <p className="text-sm text-slate-500">
+          {new Date(file.uploaded_at).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          })}
+        </p>
       </CardContent>
     </Card>
   );

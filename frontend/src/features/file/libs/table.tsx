@@ -1,26 +1,11 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { File } from "../types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cx } from "class-variance-authority";
-import {
-  Cloud,
-  File as FileIcon,
-  FileText,
-  HardDrive,
-  MoreHorizontal,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+import { Cloud, File as FileIcon, HardDrive } from "lucide-react";
 import { FileDropdown } from "../components/file-dropdown";
+import { model } from "../../../../wailsjs/go/models";
 
-export const columns: ColumnDef<File>[] = [
+export const columns: ColumnDef<model.FileRecord>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -53,21 +38,21 @@ export const columns: ColumnDef<File>[] = [
     accessorKey: "name",
     header: "Name",
     cell: ({ row }) => (
-      <div className="flex flex-row items-center gap-2">
-        <FileIcon className="h-5 w-5 text-primary" />
+      <div className="flex flex-row items-center gap-2 text-ellipsis">
+        <FileIcon className="h-5 w-5 text-primary shrink-0" />
         {row.original.name}
       </div>
     ),
   },
   {
-    accessorKey: "status",
-    header: "Status",
+    accessorKey: "state",
+    header: "State",
     meta: {
       cellClassName: "text-muted-foreground",
     },
     cell: ({ row }) => {
-      const status = row.original.status;
-      return status === "local" ? (
+      const status = row.original.state;
+      return status === 1 /* TODO(ilya): replace with enum */ ? (
         <div className="flex items-center gap-1.5">
           <HardDrive className="h-4 w-4 text-emerald-500" />
           <span className="text-sm text-slate-600 dark:text-slate-400">
@@ -92,17 +77,17 @@ export const columns: ColumnDef<File>[] = [
     },
     cell: ({ row }) => {
       const size = row.original.size;
-      return size ? `${size} MB` : "";
+      return size ? `${(size / 1024 / 1024).toFixed(2)} MB` : "";
     },
   },
   {
-    accessorKey: "createdAt",
-    header: "Created At",
+    accessorKey: "uploaded_at",
+    header: "Uploaded At",
     meta: {
       cellClassName: "text-muted-foreground",
     },
     cell: ({ row }) => {
-      const date = new Date(row.original.createdAt);
+      const date = new Date(row.original.uploaded_at);
       return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "2-digit",
@@ -116,29 +101,5 @@ export const columns: ColumnDef<File>[] = [
       const file = row.original;
       return <FileDropdown file={file} />;
     },
-  },
-];
-
-export const mockData: File[] = [
-  {
-    id: "1",
-    name: "File 1",
-    size: 10,
-    createdAt: "2021-01-01",
-    status: "local",
-  },
-  {
-    id: "2",
-    name: "File 2",
-    size: 20,
-    createdAt: "2021-02-01",
-    status: "local",
-  },
-  {
-    id: "3",
-    name: "File 3",
-    size: 30,
-    createdAt: "2021-03-01",
-    status: "cloud",
   },
 ];

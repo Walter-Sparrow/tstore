@@ -10,6 +10,10 @@ export function GetConfig() {
   return window['go']['main']['App']['GetConfig']();
 }
 
+export function GetFilesMetadata() {
+  return window['go']['main']['App']['GetFilesMetadata']();
+}
+
 export function Minimize() {
   return window['go']['main']['App']['Minimize']();
 }

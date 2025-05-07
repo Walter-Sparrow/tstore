@@ -14,31 +14,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { File, SelectedRows } from "../../types";
 import { cx } from "class-variance-authority";
-import { Dispatch, SetStateAction } from "react";
+import { useFilesContext } from "@/lib/files-context";
+import { model } from "../../../../../wailsjs/go/models";
 
 interface DataTableProps<TValue> {
-  columns: ColumnDef<File, TValue>[];
-  data: File[];
-  selectedFile: string | undefined;
-  selectFile: (id: string | undefined) => void;
-  selectedRows: SelectedRows;
-  setSelectedRows: Dispatch<SetStateAction<SelectedRows>>;
+  data: model.FileRecord[];
+  columns: ColumnDef<model.FileRecord, TValue>[];
 }
 
-export function DataTable<TValue>({
-  columns,
-  data,
-  selectFile,
-  selectedFile,
-  selectedRows,
-  setSelectedRows,
-}: DataTableProps<TValue>) {
+export function DataTable<TValue>({ data, columns }: DataTableProps<TValue>) {
+  const { selectedRows, selectedFile, selectFile, setSelectedRows } =
+    useFilesContext();
+
   const table = useReactTable({
     data,
     columns,
-    getRowId: (row) => row.id,
+    getRowId: (row) => row.name,
     getCoreRowModel: getCoreRowModel(),
     onRowSelectionChange: setSelectedRows,
     state: {
@@ -78,16 +70,16 @@ export function DataTable<TValue>({
                 <TableRow
                   key={row.id}
                   className={cx("rounded-b-xl border-b-0 group", {
-                    "!bg-purple-50": row.original.id === selectedFile,
+                    "!bg-purple-50": row.original.name === selectedFile,
                   })}
                   data-state={row.getIsSelected() && "selected"}
                   onClick={() => {
-                    if (row.original.id === selectedFile) {
+                    if (row.original.name === selectedFile) {
                       selectFile(undefined);
                       return;
                     }
 
-                    selectFile(row.original.id);
+                    selectFile(row.original.name);
                   }}
                 >
                   {row.getVisibleCells().map((cell, cellIndex) => {

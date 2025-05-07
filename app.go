@@ -8,6 +8,7 @@ import (
 	"tstore/internal/config"
 	"tstore/internal/metadata"
 	"tstore/internal/telegram"
+	"tstore/pkg/model"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -128,4 +129,8 @@ func (a *App) UploadFile(path string) (string, error) {
 	}
 
 	return rec.Name, nil
+}
+
+func (a *App) GetFilesMetadata() ([]*model.FileRecord, error) {
+	return a.store.List(a.ctx)
 }

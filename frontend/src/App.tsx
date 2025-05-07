@@ -3,7 +3,6 @@ import styles from "./App.module.css";
 import { MenuBar } from "./components/menu-bar";
 import { Files } from "./features/file/components/card";
 import { DetailsCard } from "./features/file/components/details-card";
-import { mockData } from "./features/file/libs/table";
 import {
   Card,
   CardContent,
@@ -16,14 +15,16 @@ import { SettingsForm } from "./features/settings/components/form";
 import { Button } from "./components/ui/button";
 import { cx } from "class-variance-authority";
 import { Save } from "lucide-react";
+import { useFilesContext } from "./lib/files-context";
 
 export function App() {
-  const [selectedFileId, setSelectedFile] = useState<string | undefined>();
   const [collapsed, setCollapsed] = useState(false);
   const [view, setView] = useState<"manager" | "settings">("manager");
 
+  const { files, selectedFile: selectedFileId } = useFilesContext();
+
   const selectedFile = useMemo(
-    () => mockData.find((file) => file.id === selectedFileId),
+    () => files.find((file) => file.name === selectedFileId),
     [selectedFileId]
   );
 
@@ -40,8 +41,6 @@ export function App() {
             <Files
               collapsed={collapsed}
               onCollapse={() => setCollapsed(!collapsed)}
-              selectFile={setSelectedFile}
-              selectedFile={selectedFileId}
             />
             {!collapsed && <DetailsCard file={selectedFile} />}
           </>

@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
-import { File } from "../../types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,9 +7,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { model } from "../../../../../wailsjs/go/models";
 
 interface Props {
-  file: File;
+  file: model.FileRecord;
   icon?: React.ReactNode;
 }
 
@@ -24,7 +24,7 @@ export function FileDropdown({ file, icon = <MoreHorizontal /> }: Props) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {file.status === "local" ? (
+        {file.state === 0 ? (
           <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
             Offload
           </DropdownMenuItem>

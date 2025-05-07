@@ -1,28 +1,19 @@
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
-import { File } from "../../types";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import {
   Calendar,
-  Clock,
   Cloud,
   CloudDownload,
-  Download,
   FileText,
   HardDrive,
-  Tag,
   Trash,
-  TrashIcon,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { model } from "../../../../../wailsjs/go/models";
 
 interface Props {
-  file: File | undefined;
+  file: model.FileRecord | undefined;
 }
 
 export function DetailsCard({ file }: Props) {
@@ -30,11 +21,13 @@ export function DetailsCard({ file }: Props) {
     <Card className="relative w-full h-full pt-0 gap-0 hidden lg:flex md:w-1/3">
       {file && (
         <CardHeader className="flex flex-row justify-between px-4 py-3 gap-2 items-center border-b-1">
-          <div className="flex gap-3 items-center text-xl font-semibold">
-            <div className="p-2 bg-primary/10 rounded-lg">
+          <div className="flex gap-3 items-center text-xl font-semibold w-[75%]">
+            <div className="p-2 bg-primary/10 rounded-lg shrink-0">
               <FileText className="h-6 w-6 text-primary" />
             </div>
-            {file?.name}
+            <div className="truncate" title={file?.name}>
+              {file?.name}
+            </div>
           </div>
           <div className="flex flex-row items-center gap-2">
             <Button size="icon" variant="ghost">
@@ -53,9 +46,15 @@ export function DetailsCard({ file }: Props) {
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-sm text-slate-500">
                   <Calendar className="h-4 w-4" />
-                  <span>Created</span>
+                  <span>Uploaded</span>
                 </div>
-                <p className="font-medium">{file.createdAt}</p>
+                <p className="font-medium">
+                  {new Date(file.uploaded_at).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                  })}
+                </p>
               </div>
 
               <div className="space-y-1">
@@ -63,12 +62,14 @@ export function DetailsCard({ file }: Props) {
                   <HardDrive className="h-4 w-4" />
                   <span>Size</span>
                 </div>
-                <p className="font-medium">{file.size} MB</p>
+                <p className="font-medium">
+                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                </p>
               </div>
 
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-sm text-slate-500">
-                  {file.status === "local" ? (
+                  {file.state === 1 ? (
                     <>
                       <HardDrive className="h-4 w-4 text-emerald-500" />
                       <span>Storage</span>
@@ -81,7 +82,7 @@ export function DetailsCard({ file }: Props) {
                   )}
                 </div>
                 <p className="font-medium">
-                  {file.status === "local" ? "Local Disk" : "Cloud Storage"}
+                  {file.state === 1 ? "Local Disk" : "Cloud Storage"}
                 </p>
               </div>
 

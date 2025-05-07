@@ -7,7 +7,7 @@ import {
   UploadCloud,
   X,
 } from "lucide-react";
-import { columns, mockData } from "@/features/file/libs/table";
+import { columns } from "@/features/file/libs/table";
 import {
   Card,
   CardContent,
@@ -17,36 +17,31 @@ import {
 import { DataTable } from "@/features/file/components/data-table";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { SelectedRows } from "../../types";
 import { Input } from "@/components/ui/input";
 import { ViewSwitch } from "@/components/view-switch";
 import { FileCard } from "../file-card";
 import { UploadButton } from "../upload-button";
+import { useFilesContext } from "@/lib/files-context";
 
 interface Props {
   collapsed: boolean;
   onCollapse: () => void;
-  selectedFile: string | undefined;
-  selectFile: (id: string | undefined) => void;
 }
 
-export function Files({
-  collapsed,
-  onCollapse,
-  selectFile,
-  selectedFile,
-}: Props) {
+export function Files({ collapsed, onCollapse }: Props) {
   const [view, setView] = useState<"grid" | "list">("list");
-  const [selectedRows, setSelectedRows] = useState<SelectedRows>({});
   const [filter, setFilter] = useState<string>("");
 
-  const accumulatedFilesSize = mockData.reduce(
+  const { files, selectedFile, selectedRows, setSelectedRows } =
+    useFilesContext();
+
+  const accumulatedFilesSize = files.reduce(
     (acc, file) => acc + (file.size || 0),
     0
   );
-  const totalFiles = mockData.length;
+  const totalFiles = files.length;
 
-  const filteredFiles = mockData.filter((file) =>
+  const filteredFiles = files.filter((file) =>
     file.name.toLowerCase().includes(filter.toLowerCase())
   );
 
@@ -100,24 +95,15 @@ export function Files({
       </CardHeader>
       <CardContent className="px-[14px]">
         {view === "list" ? (
-          <DataTable
-            selectedRows={selectedRows}
-            setSelectedRows={setSelectedRows}
-            selectedFile={selectedFile}
-            selectFile={selectFile}
-            columns={columns}
-            data={filteredFiles}
-          />
+          <DataTable data={filteredFiles} columns={columns} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
             {filteredFiles.map((file) => (
               <FileCard
-                key={file.id}
+                key={file.name}
                 file={file}
-                selected={Boolean(selectedRows[file.id])}
-                detailsOpened={selectedFile === file.id}
-                selectFile={selectFile}
-                setSelectedRows={setSelectedRows}
+                selected={Boolean(selectedRows[file.name])}
+                detailsOpened={selectedFile === file.name}
               />
             ))}
           </div>
@@ -131,7 +117,8 @@ export function Files({
       >
         <div className="flex flex-row items-center space-x-2">
           <span className="text-sm text-muted-foreground">
-            {totalFiles} files, {accumulatedFilesSize} MBytes
+            {totalFiles} files,{" "}
+            {(accumulatedFilesSize / 1024 / 1024).toFixed(2)} MBytes
           </span>
         </div>
       </CardFooter>

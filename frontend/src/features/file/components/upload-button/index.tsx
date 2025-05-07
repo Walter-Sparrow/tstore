@@ -2,21 +2,45 @@ import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { SelectFile, UploadFile } from "@/../wailsjs/go/main/App";
+import { useEffect, useState } from "react";
+import { EventsOff, EventsOn } from "@/../wailsjs/runtime/runtime";
 
 export function UploadButton() {
+  const [uploadPercentage, setUploadPercentage] = useState(0);
+
+  useEffect(() => {
+    const unsub = EventsOn("uploadProgress", (percentage: number) => {
+      setUploadPercentage(percentage);
+    });
+
+    return () => {
+      unsub();
+      setUploadPercentage(0);
+    };
+  }, []);
+
   const { mutate, isPending } = useMutation({
     mutationFn: UploadFile,
   });
 
   const handleFileUpload = async () => {
+    setUploadPercentage(0);
     const path = await SelectFile();
     if (!path) return;
     mutate(path);
   };
 
   return (
-    <Button size="icon" onClick={handleFileUpload}>
-      <Plus className="!text-white" />
+    <Button
+      size={isPending ? "default" : "icon"}
+      onClick={handleFileUpload}
+      disabled={isPending}
+    >
+      {isPending ? (
+        <div className="text-white">{uploadPercentage.toFixed(1)}%</div>
+      ) : (
+        <Plus className="!text-white" />
+      )}
     </Button>
   );
 }
