@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { SelectFile, UploadFile } from "@/../wailsjs/go/main/App";
 import { useEffect, useState } from "react";
 import { EventsOff, EventsOn } from "@/../wailsjs/runtime/runtime";
 
 export function UploadButton() {
+  const queryClient = useQueryClient();
   const [uploadPercentage, setUploadPercentage] = useState(0);
 
   useEffect(() => {
@@ -21,6 +22,9 @@ export function UploadButton() {
 
   const { mutate, isPending } = useMutation({
     mutationFn: UploadFile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+    },
   });
 
   const handleFileUpload = async () => {
