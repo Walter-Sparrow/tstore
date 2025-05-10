@@ -61,7 +61,7 @@ export const columns: ColumnDef<model.FileRecord>[] = [
         </div>
       ) : (
         <div className="flex items-center gap-1.5">
-          <Cloud className="h-4 w-4 text-sky-500" />
+          <Cloud className="h-4 w-4 text-sky-500 shrink-0" />
           <span className="text-sm text-slate-600 dark:text-slate-400">
             Cloud
           </span>

@@ -1,5 +1,9 @@
 import {
+  Cloud,
   DownloadCloud,
+  File,
+  HardDrive,
+  Info,
   PanelRightClose,
   PanelRightOpen,
   Search,
@@ -23,6 +27,7 @@ import { FileCard } from "../file-card";
 import { UploadButton } from "../upload-button";
 import { useFilesContext } from "@/lib/files-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { model } from "../../../../../wailsjs/go/models";
 
 interface Props {
   collapsed: boolean;
@@ -36,9 +41,16 @@ export function Files({ collapsed, onCollapse }: Props) {
   const { files, selectedFile, selectedRows, setSelectedRows } =
     useFilesContext();
 
-  const accumulatedFilesSize = files.reduce(
-    (acc, file) => acc + (file.size || 0),
-    0
+  const [cloudSize, localSize] = files.reduce(
+    (acc, file) => {
+      if (file.state === model.FileState.cloud) {
+        acc[0] += file.size / 1024 / 1024;
+      } else {
+        acc[1] += file.size / 1024 / 1024;
+      }
+      return acc;
+    },
+    [0, 0]
   );
   const totalFiles = files.length;
 
@@ -118,11 +130,25 @@ export function Files({ collapsed, onCollapse }: Props) {
           border-t-1 border-t-muted-foreground border-t-opacity-50
         `}
       >
-        <div className="flex flex-row items-center space-x-2">
-          <span className="text-sm text-muted-foreground">
-            {totalFiles} files,{" "}
-            {(accumulatedFilesSize / 1024 / 1024).toFixed(2)} MBytes
-          </span>
+        <div className="w-full  text-sm text-slate-600 flex items-center gap-1 flex-wrap">
+          <div className="flex items-center mr-3">
+            <File size={16} className="mr-1.5 text-slate-500" />
+            <span>{totalFiles} files</span>
+          </div>
+
+          <div className="flex items-center mr-3">
+            <Cloud size={16} className="mr-1.5 text-blue-500" />
+            <span>{cloudSize.toFixed(2)}MB in cloud</span>
+          </div>
+
+          <div className="flex items-center">
+            <HardDrive size={16} className="mr-1.5 text-green-500" />
+            <span>{localSize.toFixed(2)}MB in local</span>
+          </div>
+
+          <div className="ml-auto hidden sm:flex items-center">
+            <Info size={16} className="text-slate-400" />
+          </div>
         </div>
       </CardFooter>
     </Card>
