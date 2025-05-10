@@ -17,6 +17,7 @@ import {
 import { cx } from "class-variance-authority";
 import { useFilesContext } from "@/lib/files-context";
 import { model } from "../../../../../wailsjs/go/models";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DataTableProps<TValue> {
   data: model.FileRecord[];
@@ -39,9 +40,9 @@ export function DataTable<TValue>({ data, columns }: DataTableProps<TValue>) {
   });
 
   return (
-    <div className="rounded-md">
-      <Table>
-        <TableHeader>
+    <div className="rounded-md mb-4 pr-4">
+      <Table className="relative overflow-auto">
+        <TableHeader className="bg-white sticky w-full top-0 ">
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {

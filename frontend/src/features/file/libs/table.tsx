@@ -54,7 +54,7 @@ export const columns: ColumnDef<model.FileRecord>[] = [
       const status = row.original.state;
       return status === 1 /* TODO(ilya): replace with enum */ ? (
         <div className="flex items-center gap-1.5">
-          <HardDrive className="h-4 w-4 text-emerald-500" />
+          <HardDrive className="h-4 w-4 text-emerald-500 shrink-0" />
           <span className="text-sm text-slate-600 dark:text-slate-400">
             Local
           </span>

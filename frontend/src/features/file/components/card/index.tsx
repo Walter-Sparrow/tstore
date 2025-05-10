@@ -22,6 +22,7 @@ import { ViewSwitch } from "@/components/view-switch";
 import { FileCard } from "../file-card";
 import { UploadButton } from "../upload-button";
 import { useFilesContext } from "@/lib/files-context";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Props {
   collapsed: boolean;
@@ -93,21 +94,23 @@ export function Files({ collapsed, onCollapse }: Props) {
           )}
         </div>
       </CardHeader>
-      <CardContent className="px-[14px]">
-        {view === "list" ? (
-          <DataTable data={filteredFiles} columns={columns} />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-            {filteredFiles.map((file) => (
-              <FileCard
-                key={file.name}
-                file={file}
-                selected={Boolean(selectedRows[file.name])}
-                detailsOpened={selectedFile === file.name}
-              />
-            ))}
-          </div>
-        )}
+      <CardContent className="px-[14px] pb-[14px] flex-1 overflow-hidden">
+        <ScrollArea className="h-full w-full mb-1">
+          {view === "list" ? (
+            <DataTable data={filteredFiles} columns={columns} />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2 pr-4 mb-4">
+              {filteredFiles.map((file) => (
+                <FileCard
+                  key={file.name}
+                  file={file}
+                  selected={Boolean(selectedRows[file.name])}
+                  detailsOpened={selectedFile === file.name}
+                />
+              ))}
+            </div>
+          )}
+        </ScrollArea>
       </CardContent>
       <CardFooter
         className={`
