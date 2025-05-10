@@ -154,3 +154,9 @@ func (a *App) GetFilesMetadata() ([]*model.FileRecord, error) {
 func (a *App) OffloadFile(name string) error {
 	return a.uploader.OffloadFile(a.ctx, name, a.cfg.ChatID)
 }
+
+func (a *App) DownloadFile(name string) error {
+	return a.uploader.DownloadFile(a.ctx, name, a.cfg.ChatID, func(p float64) {
+		runtime.EventsEmit(a.ctx, fmt.Sprintf("downloadProgress/%s", name), p)
+	})
+}

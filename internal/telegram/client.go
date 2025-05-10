@@ -212,6 +212,49 @@ func (c *Client) DownloadFile(ctx context.Context, fileID string) (io.ReadCloser
 	return resp2.Body, nil
 }
 
+func (c *Client) DownloadChunks(ctx context.Context, fileIDs []string, dstPath string) error {
+	if err := os.MkdirAll(filepath.Dir(dstPath), 0o700); err != nil {
+		return fmt.Errorf("create parent dirs for %q: %w", dstPath, err)
+	}
+
+	tmpPath := dstPath + ".tmp"
+	f, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	if err != nil {
+		return fmt.Errorf("open temp file %q: %w", tmpPath, err)
+	}
+	defer f.Close()
+
+	for _, fileID := range fileIDs {
+		rc, err := c.DownloadFile(ctx, fileID)
+		if err != nil {
+			os.Remove(tmpPath)
+			return fmt.Errorf("download chunk %q: %w", fileID, err)
+		}
+		_, err = io.Copy(f, rc)
+		rc.Close()
+		if err != nil {
+			os.Remove(tmpPath)
+			return fmt.Errorf("write chunk %q to %q: %w", fileID, tmpPath, err)
+		}
+	}
+
+	if err := f.Sync(); err != nil {
+		os.Remove(tmpPath)
+		return fmt.Errorf("sync temp file %q: %w", tmpPath, err)
+	}
+	if err := f.Close(); err != nil {
+		os.Remove(tmpPath)
+		return fmt.Errorf("close temp file %q: %w", tmpPath, err)
+	}
+
+	if err := os.Rename(tmpPath, dstPath); err != nil {
+		os.Remove(tmpPath)
+		return fmt.Errorf("rename %q to %q: %w", tmpPath, dstPath, err)
+	}
+
+	return nil
+}
+
 func (c *Client) PinChatMessage(ctx context.Context, chatID string, messageID int, disableNotification bool) error {
 	url := fmt.Sprintf("%s/pinChatMessage", c.baseURL)
 

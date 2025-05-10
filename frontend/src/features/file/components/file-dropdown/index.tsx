@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Loader, MoreHorizontal } from "lucide-react";
+import { Download, Loader, MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,8 +9,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { model } from "../../../../../wailsjs/go/models";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { OffloadFile } from "../../../../../wailsjs/go/main/App";
+import { DownloadFile, OffloadFile } from "../../../../../wailsjs/go/main/App";
 import { toast } from "sonner";
+import { useState } from "react";
+import { EventsOn } from "../../../../../wailsjs/runtime/runtime";
 
 interface Props {
   file: model.FileRecord;
@@ -19,7 +21,7 @@ interface Props {
 
 export function FileDropdown({ file, icon = <MoreHorizontal /> }: Props) {
   const queryClient = useQueryClient();
-  const { mutateAsync: offload, isPending } = useMutation({
+  const { mutateAsync: offload, isPending: isOffloading } = useMutation({
     mutationFn: OffloadFile,
   });
 
@@ -29,6 +31,43 @@ export function FileDropdown({ file, icon = <MoreHorizontal /> }: Props) {
       .then(() => queryClient.invalidateQueries({ queryKey: ["files"] }))
       .catch((err) => toast.error(err.message));
   };
+
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const { mutateAsync: download, isPending: isDownloading } = useMutation({
+    mutationFn: DownloadFile,
+  });
+
+  const handleDownload: React.MouseEventHandler = (e) => {
+    e.stopPropagation();
+    setDownloadProgress(0);
+    const unsub = EventsOn(
+      `downloadProgress/${file.name}`,
+      (percentage: number) => {
+        setDownloadProgress(percentage);
+      }
+    );
+
+    download(file.name)
+      .then(() => queryClient.invalidateQueries({ queryKey: ["files"] }))
+      .catch((err) => toast.error(err.message))
+      .finally(() => {
+        unsub();
+        setDownloadProgress(0);
+      });
+  };
+
+  if (isOffloading) {
+    return <Loader className="h-9 w-4 text-primary shrink-0 animate-spin" />;
+  }
+
+  if (isDownloading) {
+    return (
+      <div className="h-9 flex items-center gap-2">
+        {downloadProgress.toFixed(1)}%
+        <Download className="h-4 w-4 text-primary shrink-0" />
+      </div>
+    );
+  }
 
   return (
     <DropdownMenu>
@@ -40,12 +79,9 @@ export function FileDropdown({ file, icon = <MoreHorizontal /> }: Props) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {file.state === model.FileState.local ? (
-          <DropdownMenuItem disabled={isPending} onClick={handleOffload}>
-            {isPending && <Loader className="animate-spin" />}
-            Offload
-          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleOffload}>Offload</DropdownMenuItem>
         ) : (
-          <DropdownMenuItem>Download</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleDownload}>Download</DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem

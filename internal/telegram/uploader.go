@@ -18,6 +18,22 @@ import (
 
 type ProgressFn func(percent float64)
 
+type progressReader struct {
+	r          io.Reader
+	total      int64
+	done       *int64
+	onProgress ProgressFn
+}
+
+func (pr *progressReader) Read(p []byte) (n int, err error) {
+	n, err = pr.r.Read(p)
+	if n > 0 {
+		*pr.done += int64(n)
+		pr.onProgress(float64(*pr.done) / float64(pr.total) * 100)
+	}
+	return
+}
+
 type Uploader struct {
 	Client     *Client
 	Store      metadata.Store
@@ -141,6 +157,83 @@ func (u *Uploader) OffloadFile(ctx context.Context, name string, chatID string) 
 	rec.State = model.StateCloud
 	if err := u.Store.Update(ctx, rec); err != nil {
 		return fmt.Errorf("update local metadata: %w", err)
+	}
+
+	if err := u.backupMetadata(ctx, chatID); err != nil {
+		rec.State = model.StateLocal
+		_ = u.Store.Update(ctx, rec)
+		return err
+	}
+
+	return nil
+}
+
+func (u *Uploader) DownloadFile(
+	ctx context.Context,
+	name string,
+	chatID string,
+	onProgress ProgressFn,
+) error {
+	rec, err := u.Store.Get(ctx, name)
+	if err != nil {
+		return fmt.Errorf("lookup %q: %w", name, err)
+	}
+
+	totalSize := rec.Size
+	if totalSize <= 0 {
+		return fmt.Errorf("invalid total size %d", totalSize)
+	}
+
+	dstPath := filepath.Join(u.SyncFolder, rec.Name)
+	tmpPath := dstPath + ".tmp"
+	if err := os.MkdirAll(filepath.Dir(dstPath), 0o700); err != nil {
+		return fmt.Errorf("create sync folder: %w", err)
+	}
+	out, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	if err != nil {
+		return fmt.Errorf("open temp file: %w", err)
+	}
+	defer out.Close()
+
+	var downloaded int64
+	for _, fileID := range rec.ChunkIds {
+		rc, err := u.Client.DownloadFile(ctx, fileID)
+		if err != nil {
+			os.Remove(tmpPath)
+			return fmt.Errorf("download chunk %q: %w", fileID, err)
+		}
+
+		pr := &progressReader{
+			r:          rc,
+			total:      totalSize,
+			done:       &downloaded,
+			onProgress: onProgress,
+		}
+
+		if _, err := io.Copy(out, pr); err != nil {
+			rc.Close()
+			os.Remove(tmpPath)
+			return fmt.Errorf("assemble chunk %q: %w", fileID, err)
+		}
+		rc.Close()
+	}
+
+	if err := out.Sync(); err != nil {
+		os.Remove(tmpPath)
+		return fmt.Errorf("sync temp file: %w", err)
+	}
+	if err := out.Close(); err != nil {
+		os.Remove(tmpPath)
+		return fmt.Errorf("close temp file: %w", err)
+	}
+	if err := os.Rename(tmpPath, dstPath); err != nil {
+		os.Remove(tmpPath)
+		return fmt.Errorf("rename to final file: %w", err)
+	}
+
+	rec.State = model.StateLocal
+	if err := u.Store.Update(ctx, rec); err != nil {
+		return fmt.Errorf("update metadata: %w", err)
 	}
 
 	if err := u.backupMetadata(ctx, chatID); err != nil {

@@ -25,7 +25,7 @@ export function App() {
 
   const selectedFile = useMemo(
     () => files.find((file) => file.name === selectedFileId),
-    [selectedFileId]
+    [selectedFileId, files]
   );
 
   return (

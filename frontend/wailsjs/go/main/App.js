@@ -6,6 +6,10 @@ export function Close() {
   return window['go']['main']['App']['Close']();
 }
 
+export function DownloadFile(arg1) {
+  return window['go']['main']['App']['DownloadFile'](arg1);
+}
+
 export function GetConfig() {
   return window['go']['main']['App']['GetConfig']();
 }
