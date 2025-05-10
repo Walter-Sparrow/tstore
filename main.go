@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"runtime"
+	"tstore/pkg/model"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -27,6 +28,9 @@ func main() {
 		OnStartup: app.startup,
 		Bind: []any{
 			app,
+		},
+		EnumBind: []any{
+			model.AllStates,
 		},
 		Mac: &mac.Options{
 			TitleBar: &mac.TitleBar{

@@ -18,6 +18,10 @@ export function Minimize() {
   return window['go']['main']['App']['Minimize']();
 }
 
+export function OffloadFile(arg1) {
+  return window['go']['main']['App']['OffloadFile'](arg1);
+}
+
 export function SelectDirectory() {
   return window['go']['main']['App']['SelectDirectory']();
 }

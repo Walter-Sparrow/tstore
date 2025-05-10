@@ -55,7 +55,7 @@ export function FileCard({ file, detailsOpened, selected }: Props) {
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <FileIcon className="h-8 w-8 text-primary ml-[-4px]" />
-            {file.state === 1 ? (
+            {file.state === model.FileState.local ? (
               <Badge
                 variant="outline"
                 className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-400"

@@ -7,12 +7,20 @@ import (
 
 var ErrNotFound = errors.New("record not found")
 
-type FileState int
+type FileState string
 
 const (
-	StateLocal FileState = iota
-	StateCloud
+	StateLocal FileState = "local"
+	StateCloud FileState = "cloud"
 )
+
+var AllStates = []struct {
+	Value  FileState
+	TSName string
+}{
+	{StateLocal, "local"},
+	{StateCloud, "cloud"},
+}
 
 type FileRecord struct {
 	Name        string    `json:"name"`

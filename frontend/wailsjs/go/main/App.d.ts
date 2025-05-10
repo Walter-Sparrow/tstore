@@ -11,6 +11,8 @@ export function GetFilesMetadata():Promise<Array<model.FileRecord>>;
 
 export function Minimize():Promise<void>;
 
+export function OffloadFile(arg1:string):Promise<void>;
+
 export function SelectDirectory():Promise<string>;
 
 export function SelectFile():Promise<string>;

@@ -69,7 +69,7 @@ export function DetailsCard({ file }: Props) {
 
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-sm text-slate-500">
-                  {file.state === 1 ? (
+                  {file.state === model.FileState.local ? (
                     <>
                       <HardDrive className="h-4 w-4 text-emerald-500" />
                       <span>Storage</span>
@@ -82,7 +82,9 @@ export function DetailsCard({ file }: Props) {
                   )}
                 </div>
                 <p className="font-medium">
-                  {file.state === 1 ? "Local Disk" : "Cloud Storage"}
+                  {file.state === model.FileState.local
+                    ? "Local Disk"
+                    : "Cloud Storage"}
                 </p>
               </div>
 

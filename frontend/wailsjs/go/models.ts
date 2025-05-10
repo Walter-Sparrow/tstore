@@ -21,9 +21,13 @@ export namespace config {
 
 export namespace model {
 	
+	export enum FileState {
+	    local = "local",
+	    cloud = "cloud",
+	}
 	export class FileRecord {
 	    name: string;
-	    state: number;
+	    state: FileState;
 	    description: string;
 	    size: number;
 	    checksum: string;

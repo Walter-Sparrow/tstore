@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { Loader, MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,6 +8,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { model } from "../../../../../wailsjs/go/models";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { OffloadFile } from "../../../../../wailsjs/go/main/App";
+import { toast } from "sonner";
 
 interface Props {
   file: model.FileRecord;
@@ -15,6 +18,18 @@ interface Props {
 }
 
 export function FileDropdown({ file, icon = <MoreHorizontal /> }: Props) {
+  const queryClient = useQueryClient();
+  const { mutateAsync: offload, isPending } = useMutation({
+    mutationFn: OffloadFile,
+  });
+
+  const handleOffload: React.MouseEventHandler = (e) => {
+    e.stopPropagation();
+    offload(file.name)
+      .then(() => queryClient.invalidateQueries({ queryKey: ["files"] }))
+      .catch((err) => toast.error(err.message));
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -24,8 +39,9 @@ export function FileDropdown({ file, icon = <MoreHorizontal /> }: Props) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {file.state === 0 ? (
-          <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+        {file.state === model.FileState.local ? (
+          <DropdownMenuItem disabled={isPending} onClick={handleOffload}>
+            {isPending && <Loader className="animate-spin" />}
             Offload
           </DropdownMenuItem>
         ) : (

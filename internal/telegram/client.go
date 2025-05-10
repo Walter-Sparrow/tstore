@@ -30,10 +30,10 @@ func NewClient(token string) *Client {
 	}
 }
 
-func (c *Client) SendText(ctx context.Context, chatID int64, text string) (messageID int, err error) {
+func (c *Client) SendText(ctx context.Context, chatID string, text string) (messageID int, err error) {
 	endpoint := fmt.Sprintf("%s/sendMessage", c.baseURL)
 	form := url.Values{}
-	form.Set("chat_id", fmt.Sprintf("%d", chatID))
+	form.Set("chat_id", chatID)
 	form.Set("text", text)
 
 	resp, err := c.client.PostForm(endpoint, form)
@@ -248,6 +248,43 @@ func (c *Client) PinChatMessage(ctx context.Context, chatID string, messageID in
 		return fmt.Errorf("telegram API error pinning message: %s", respData.Description)
 	}
 
+	return nil
+}
+
+func (c *Client) UnpinChatMessage(ctx context.Context, chatID string, messageID int) error {
+	url := fmt.Sprintf("%s/unpinChatMessage", c.baseURL)
+
+	payload := map[string]any{
+		"chat_id":    chatID,
+		"message_id": messageID,
+	}
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshal unpinChatMessage payload: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return fmt.Errorf("new unpinChatMessage request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("unpinChatMessage HTTP request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var respData struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description,omitempty"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
+		return fmt.Errorf("decode unpinChatMessage response: %w", err)
+	}
+	if !respData.OK {
+		return fmt.Errorf("telegram API error unpinning message: %s", respData.Description)
+	}
 	return nil
 }
 

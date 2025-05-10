@@ -31,7 +31,7 @@ func TestSendChunkDownloadAndSendText(t *testing.T) {
 		client:  server.Client(),
 	}
 
-	txtMsgID, err := client.SendText(context.Background(), 123, "hello")
+	txtMsgID, err := client.SendText(context.Background(), "123", "hello")
 	if err != nil {
 		t.Fatalf("SendText failed: %v", err)
 	}

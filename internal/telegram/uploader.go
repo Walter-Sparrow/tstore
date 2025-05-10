@@ -34,6 +34,18 @@ func NewUploader(client *Client, store metadata.Store, syncFolder string, chunkS
 	}
 }
 
+func (u *Uploader) backupMetadata(ctx context.Context, chatID string) error {
+	msgID, _, err := u.Client.SendFile(ctx, chatID, u.Store.Path(), "metadata backup")
+	if err != nil {
+		return fmt.Errorf("sending metadata backup: %w", err)
+	}
+	if err := u.Client.PinChatMessage(ctx, chatID, msgID, true); err != nil {
+		return fmt.Errorf("pinning metadata backup: %w", err)
+	}
+
+	return nil
+}
+
 func (u *Uploader) UploadFile(
 	ctx context.Context,
 	filePath string,
@@ -97,7 +109,7 @@ func (u *Uploader) UploadFile(
 	checksum := hex.EncodeToString(hasher.Sum(nil))
 	rec := &model.FileRecord{
 		Name:        fileName,
-		State:       model.StateCloud,
+		State:       model.StateLocal,
 		Description: "",
 		Size:        fileSize,
 		Checksum:    checksum,
@@ -108,15 +120,34 @@ func (u *Uploader) UploadFile(
 		return nil, fmt.Errorf("save metadata: %w", err)
 	}
 
-	messageID, _, err := u.Client.SendFile(ctx, chatID, u.Store.Path(), "metadata")
-	if err != nil {
-		return nil, fmt.Errorf("send metadata: %w", err)
-	}
-
-	err = u.Client.PinChatMessage(ctx, chatID, messageID, true)
-	if err != nil {
-		return nil, fmt.Errorf("pin message: %w", err)
+	if err := u.backupMetadata(ctx, chatID); err != nil {
+		return nil, fmt.Errorf("backup metadata: %w", err)
 	}
 
 	return rec, nil
+}
+
+func (u *Uploader) OffloadFile(ctx context.Context, name string, chatID string) error {
+	rec, err := u.Store.Get(ctx, name)
+	if err != nil {
+		return fmt.Errorf("lookup %q: %w", name, err)
+	}
+
+	localPath := filepath.Join(u.SyncFolder, rec.Name)
+	if err := os.Remove(localPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove local file: %w", err)
+	}
+
+	rec.State = model.StateCloud
+	if err := u.Store.Update(ctx, rec); err != nil {
+		return fmt.Errorf("update local metadata: %w", err)
+	}
+
+	if err := u.backupMetadata(ctx, chatID); err != nil {
+		rec.State = model.StateLocal
+		_ = u.Store.Update(ctx, rec)
+		return err
+	}
+
+	return nil
 }

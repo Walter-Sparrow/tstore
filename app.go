@@ -48,26 +48,20 @@ func (a *App) startup(ctx context.Context) {
 		log.Fatalf("failed to init services: %v", err)
 	}
 
-	_, err := os.Stat(a.store.Path())
-	if err == nil {
+	fileID, err := a.client.GetPinnedFileID(ctx, a.cfg.ChatID)
+	if err != nil {
+		log.Printf("failed to get pinned file ID: %v", err)
 		return
 	}
-	if os.IsNotExist(err) {
-		fileID, err := a.client.GetPinnedFileID(ctx, a.cfg.ChatID)
-		if err != nil {
-			log.Printf("failed to get pinned file ID: %v", err)
-			return
-		}
 
-		reader, err := a.client.DownloadFile(ctx, fileID)
-		if err != nil {
-			log.Fatalf("failed to download file: %v", err)
-		}
-		defer reader.Close()
+	reader, err := a.client.DownloadFile(ctx, fileID)
+	if err != nil {
+		log.Fatalf("failed to download file: %v", err)
+	}
+	defer reader.Close()
 
-		if err := a.store.Load(ctx, reader); err != nil {
-			log.Fatalf("failed to load metadata: %v", err)
-		}
+	if err := a.store.Load(ctx, reader); err != nil {
+		log.Fatalf("failed to load metadata: %v", err)
 	}
 }
 
@@ -155,4 +149,8 @@ func (a *App) UploadFile(path string) (string, error) {
 
 func (a *App) GetFilesMetadata() ([]*model.FileRecord, error) {
 	return a.store.List(a.ctx)
+}
+
+func (a *App) OffloadFile(name string) error {
+	return a.uploader.OffloadFile(a.ctx, name, a.cfg.ChatID)
 }
