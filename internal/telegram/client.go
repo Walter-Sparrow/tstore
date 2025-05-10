@@ -4,16 +4,20 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 )
 
 type Client struct {
 	token   string
 	baseURL string
+	fileURL string
 	client  *http.Client
 }
 
@@ -21,6 +25,7 @@ func NewClient(token string) *Client {
 	return &Client{
 		token:   token,
 		baseURL: fmt.Sprintf("https://api.telegram.org/bot%s", token),
+		fileURL: fmt.Sprintf("https://api.telegram.org/file/bot%s", token),
 		client:  http.DefaultClient,
 	}
 }
@@ -36,6 +41,7 @@ func (c *Client) SendText(ctx context.Context, chatID int64, text string) (messa
 		return 0, err
 	}
 	defer resp.Body.Close()
+
 	var res struct {
 		OK     bool `json:"ok"`
 		Result struct {
@@ -48,6 +54,7 @@ func (c *Client) SendText(ctx context.Context, chatID int64, text string) (messa
 	if !res.OK {
 		return 0, fmt.Errorf("telegram API error sending text")
 	}
+
 	return res.Result.MessageID, nil
 }
 
@@ -76,6 +83,7 @@ func (c *Client) SendChunk(ctx context.Context, chatID string, chunk io.Reader, 
 		return "", err
 	}
 	defer resp.Body.Close()
+
 	var res struct {
 		OK     bool `json:"ok"`
 		Result struct {
@@ -90,7 +98,73 @@ func (c *Client) SendChunk(ctx context.Context, chatID string, chunk io.Reader, 
 	if !res.OK {
 		return "", fmt.Errorf("telegram API error sending chunk")
 	}
+
 	return res.Result.Document.FileID, nil
+}
+
+func (c *Client) SendFile(ctx context.Context, chatID string, localPath string, caption string) (messageID int, fileID string, err error) {
+	f, err := os.Open(localPath)
+	if err != nil {
+		return 0, "", fmt.Errorf("open %q: %w", localPath, err)
+	}
+	defer f.Close()
+
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+
+	field, err := w.CreateFormFile("document", filepath.Base(localPath))
+	if err != nil {
+		return 0, "", fmt.Errorf("create form file: %w", err)
+	}
+	if _, err := io.Copy(field, f); err != nil {
+		return 0, "", fmt.Errorf("copy file data: %w", err)
+	}
+
+	if err := w.WriteField("chat_id", chatID); err != nil {
+		return 0, "", fmt.Errorf("write chat_id: %w", err)
+	}
+	if caption != "" {
+		if err := w.WriteField("caption", caption); err != nil {
+			return 0, "", fmt.Errorf("write caption: %w", err)
+		}
+	}
+	w.Close()
+
+	url := fmt.Sprintf("%s/sendDocument", c.baseURL)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, &b)
+	if err != nil {
+		return 0, "", fmt.Errorf("new request: %w", err)
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return 0, "", fmt.Errorf("http do: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, "", fmt.Errorf("read resp body: %w", err)
+	}
+
+	var res struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			MessageID int `json:"message_id"`
+			Document  struct {
+				FileID string `json:"file_id"`
+			} `json:"document"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(respBytes, &res); err != nil {
+		return 0, "", fmt.Errorf("unmarshal response %q: %w", string(respBytes), err)
+	}
+	if !res.OK {
+		return 0, "", fmt.Errorf("telegram error: %s", string(respBytes))
+	}
+
+	return res.Result.MessageID, res.Result.Document.FileID, nil
 }
 
 func (c *Client) DownloadFile(ctx context.Context, fileID string) (io.ReadCloser, error) {
@@ -121,7 +195,7 @@ func (c *Client) DownloadFile(ctx context.Context, fileID string) (io.ReadCloser
 		return nil, fmt.Errorf("telegram API error getting file path")
 	}
 
-	downloadURL := fmt.Sprintf("%s/file/%s", c.baseURL, meta.Result.FilePath)
+	downloadURL := fmt.Sprintf("%s/%s", c.fileURL, meta.Result.FilePath)
 	req2, err := http.NewRequestWithContext(ctx, "GET", downloadURL, nil)
 	if err != nil {
 		return nil, err
@@ -134,5 +208,84 @@ func (c *Client) DownloadFile(ctx context.Context, fileID string) (io.ReadCloser
 		resp2.Body.Close()
 		return nil, fmt.Errorf("unexpected status: %s", resp2.Status)
 	}
+
 	return resp2.Body, nil
+}
+
+func (c *Client) PinChatMessage(ctx context.Context, chatID string, messageID int, disableNotification bool) error {
+	url := fmt.Sprintf("%s/pinChatMessage", c.baseURL)
+
+	payload := map[string]any{
+		"chat_id":              chatID,
+		"message_id":           messageID,
+		"disable_notification": disableNotification,
+	}
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshal pinChatMessage payload: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return fmt.Errorf("new pinChatMessage request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("pinChatMessage HTTP request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var respData struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description,omitempty"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
+		return fmt.Errorf("decode pinChatMessage response: %w", err)
+	}
+	if !respData.OK {
+		return fmt.Errorf("telegram API error pinning message: %s", respData.Description)
+	}
+
+	return nil
+}
+
+func (c *Client) GetPinnedFileID(ctx context.Context, chatID string) (string, error) {
+	url := fmt.Sprintf("%s/getChat?chat_id=%s", c.baseURL, chatID)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("new getChat request: %w", err)
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("getChat HTTP request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var payload struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			PinnedMessage *struct {
+				Document *struct {
+					FileID string `json:"file_id"`
+				} `json:"document"`
+			} `json:"pinned_message"`
+		} `json:"result"`
+		Description string `json:"description,omitempty"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return "", fmt.Errorf("decode getChat response: %w", err)
+	}
+	if !payload.OK {
+		return "", fmt.Errorf("telegram API error in getChat: %s", payload.Description)
+	}
+
+	pm := payload.Result.PinnedMessage
+	if pm == nil || pm.Document == nil {
+		return "", errors.New("no pinned message with a document found")
+	}
+
+	return pm.Document.FileID, nil
 }

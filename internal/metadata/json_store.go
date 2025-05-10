@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -151,4 +152,29 @@ func (s *JSONStore) List(ctx context.Context) ([]*model.FileRecord, error) {
 	}
 
 	return out, nil
+}
+
+func (s *JSONStore) Path() string {
+	return s.path
+}
+
+func (s *JSONStore) Load(ctx context.Context, reader io.ReadCloser) error {
+	defer reader.Close()
+
+	var list []*model.FileRecord
+	dec := json.NewDecoder(reader)
+	if err := dec.Decode(&list); err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.records = make(map[string]*model.FileRecord, len(list))
+	for _, rec := range list {
+		copyRec := *rec
+		s.records[copyRec.Name] = &copyRec
+	}
+
+	return nil
 }

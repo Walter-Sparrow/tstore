@@ -108,5 +108,15 @@ func (u *Uploader) UploadFile(
 		return nil, fmt.Errorf("save metadata: %w", err)
 	}
 
+	messageID, _, err := u.Client.SendFile(ctx, chatID, u.Store.Path(), "metadata")
+	if err != nil {
+		return nil, fmt.Errorf("send metadata: %w", err)
+	}
+
+	err = u.Client.PinChatMessage(ctx, chatID, messageID, true)
+	if err != nil {
+		return nil, fmt.Errorf("pin message: %w", err)
+	}
+
 	return rec, nil
 }
