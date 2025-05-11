@@ -9,6 +9,7 @@ import (
 	"time"
 	"tstore/internal/config"
 	"tstore/internal/metadata"
+	tsync "tstore/internal/sync"
 	"tstore/internal/telegram"
 	"tstore/pkg/model"
 
@@ -48,6 +49,11 @@ func (a *App) initServices() error {
 	return nil
 }
 
+type syncJob struct {
+	Path string
+	Name string
+}
+
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	if err := a.initServices(); err != nil {
@@ -69,6 +75,40 @@ func (a *App) startup(ctx context.Context) {
 	if err := a.store.Load(ctx, reader); err != nil {
 		log.Fatalf("failed to load metadata: %v", err)
 	}
+
+	jobCh := make(chan syncJob)
+
+	go func() {
+		for job := range jobCh {
+			runtime.EventsEmit(ctx, "syncStart", job.Name)
+
+			_, err := a.uploader.UploadFile(ctx, job.Path, a.cfg.ChatID,
+				func(p float64) {
+					runtime.EventsEmit(ctx, "syncProgress", job.Name, p)
+				},
+			)
+			if err != nil {
+				runtime.EventsEmit(ctx, "syncError", job.Name, err.Error())
+			} else {
+				a.uploader.BackupMetadata(ctx, a.cfg.ChatID)
+				runtime.EventsEmit(ctx, "syncSuccess", job.Name)
+			}
+		}
+	}()
+
+	go func() {
+		err := tsync.StartSyncWatcher(
+			a.ctx,
+			a.cfg.SyncFolder,
+			a.store,
+			func(ctx context.Context, path, name string) {
+				jobCh <- syncJob{Path: path, Name: name}
+			},
+		)
+		if err != nil {
+			log.Printf("failed to start sync watcher: %v", err)
+		}
+	}()
 }
 
 func (a *App) shutdown(ctx context.Context) {
