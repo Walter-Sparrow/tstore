@@ -8,26 +8,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { model } from "../../../../../wailsjs/go/models";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useIsMutating,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   DeleteFile,
   DownloadFile,
   OffloadFile,
 } from "../../../../../wailsjs/go/main/App";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EventsOn } from "../../../../../wailsjs/runtime/runtime";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { RemoveAlert } from "../remove-alert";
 
 interface Props {
   file: model.FileRecord;
@@ -36,9 +30,14 @@ interface Props {
 
 export function FileDropdown({ file, icon = <MoreHorizontal /> }: Props) {
   const queryClient = useQueryClient();
-  const { mutateAsync: offload, isPending: isOffloading } = useMutation({
+  const { mutateAsync: offload } = useMutation({
+    mutationKey: ["offload", file.name],
     mutationFn: OffloadFile,
   });
+  const isOffloading =
+    useIsMutating({
+      mutationKey: ["offload", file.name],
+    }) > 0;
 
   const handleOffload: React.MouseEventHandler = (e) => {
     e.stopPropagation();
@@ -48,13 +47,16 @@ export function FileDropdown({ file, icon = <MoreHorizontal /> }: Props) {
   };
 
   const [downloadProgress, setDownloadProgress] = useState(0);
-  const { mutateAsync: download, isPending: isDownloading } = useMutation({
+  const { mutateAsync: download } = useMutation({
+    mutationKey: ["download", file.name],
     mutationFn: DownloadFile,
   });
+  const isDownloading =
+    useIsMutating({
+      mutationKey: ["download", file.name],
+    }) > 0;
 
-  const handleDownload: React.MouseEventHandler = (e) => {
-    e.stopPropagation();
-    setDownloadProgress(0);
+  useEffect(() => {
     const unsub = EventsOn(
       `downloadProgress/${file.name}`,
       (percentage: number) => {
@@ -62,22 +64,36 @@ export function FileDropdown({ file, icon = <MoreHorizontal /> }: Props) {
       }
     );
 
+    return () => {
+      unsub();
+      setDownloadProgress(0);
+    };
+  }, [file.name]);
+
+  const handleDownload: React.MouseEventHandler = (e) => {
+    e.stopPropagation();
+    setDownloadProgress(0);
+
     download(file.name)
       .then(() => queryClient.invalidateQueries({ queryKey: ["files"] }))
       .catch((err) => toast.error(err.message))
       .finally(() => {
-        unsub();
         setDownloadProgress(0);
       });
   };
 
   const [showAlert, setShowAlert] = useState(false);
-  const { mutateAsync: deleteFile, isPending: isDeleting } = useMutation({
+  const { mutateAsync: deleteFile } = useMutation({
+    mutationKey: ["delete", file.name],
     mutationFn: DeleteFile,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["files"] });
     },
   });
+  const isDeleting =
+    useIsMutating({
+      mutationKey: ["delete", file.name],
+    }) > 0;
 
   const handleDelete: React.MouseEventHandler = (e) => {
     e.stopPropagation();
@@ -126,23 +142,11 @@ export function FileDropdown({ file, icon = <MoreHorizontal /> }: Props) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <AlertDialog open={showAlert} onOpenChange={setShowAlert}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your
-              account and remove your data from our servers.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>
-              Continue
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <RemoveAlert
+        showAlert={showAlert}
+        setShowAlert={setShowAlert}
+        handleDelete={handleDelete}
+      />
     </>
   );
 }
