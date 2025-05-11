@@ -19,13 +19,14 @@ func main() {
 
 	err := wails.Run(&options.App{
 		Title:     "tstore",
-		Width:     1024,
+		Width:     1280,
 		Height:    768,
 		Frameless: frameless,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		OnStartup: app.startup,
+		OnStartup:  app.startup,
+		OnShutdown: app.shutdown,
 		Bind: []any{
 			app,
 		},

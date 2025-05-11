@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/card";
 import { DataTable } from "@/features/file/components/data-table";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { ViewSwitch } from "@/components/view-switch";
 import { FileCard } from "../file-card";
@@ -41,21 +41,30 @@ export function Files({ collapsed, onCollapse }: Props) {
   const { files, selectedFile, selectedRows, setSelectedRows } =
     useFilesContext();
 
-  const [cloudSize, localSize] = files.reduce(
-    (acc, file) => {
-      if (file.state === model.FileState.cloud) {
-        acc[0] += file.size / 1024 / 1024;
-      } else {
-        acc[1] += file.size / 1024 / 1024;
-      }
-      return acc;
-    },
-    [0, 0]
+  const [cloudSize, localSize] = useMemo(
+    () =>
+      files.reduce(
+        (acc, file) => {
+          if (file.state === model.FileState.cloud) {
+            acc[0] += file.size / 1024 / 1024;
+          } else {
+            acc[1] += file.size / 1024 / 1024;
+          }
+          return acc;
+        },
+        [0, 0]
+      ),
+    [files]
   );
+
   const totalFiles = files.length;
 
-  const filteredFiles = files.filter((file) =>
-    file.name.toLowerCase().includes(filter.toLowerCase())
+  const filteredFiles = useMemo(
+    () =>
+      files.filter((file) =>
+        file.name.toLowerCase().includes(filter.toLowerCase())
+      ),
+    [files, filter]
   );
 
   return (

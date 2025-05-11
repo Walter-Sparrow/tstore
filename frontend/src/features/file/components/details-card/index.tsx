@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { model } from "../../../../../wailsjs/go/models";
+import { DescriptionEditor } from "../description-editor";
 
 interface Props {
   file: model.FileRecord | undefined;
@@ -99,10 +100,10 @@ export function DetailsCard({ file }: Props) {
             <Separator />
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Description</h3>
-              <Textarea
-                placeholder="Add a description for this file..."
-                className="min-h-[120px] resize-none"
-                defaultValue="This document contains the quarterly financial report for Q1 2021. It includes revenue breakdowns, expense analysis, and projections for the upcoming quarters."
+              <DescriptionEditor
+                key={file.name}
+                fileName={file.name}
+                defaultValue={file.description}
               />
             </div>
           </div>

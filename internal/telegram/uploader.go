@@ -50,7 +50,7 @@ func NewUploader(client *Client, store metadata.Store, syncFolder string, chunkS
 	}
 }
 
-func (u *Uploader) backupMetadata(ctx context.Context, chatID string) error {
+func (u *Uploader) BackupMetadata(ctx context.Context, chatID string) error {
 	msgID, _, err := u.Client.SendFile(ctx, chatID, u.Store.Path(), "metadata backup")
 	if err != nil {
 		return fmt.Errorf("sending metadata backup: %w", err)
@@ -136,7 +136,7 @@ func (u *Uploader) UploadFile(
 		return nil, fmt.Errorf("save metadata: %w", err)
 	}
 
-	if err := u.backupMetadata(ctx, chatID); err != nil {
+	if err := u.BackupMetadata(ctx, chatID); err != nil {
 		return nil, fmt.Errorf("backup metadata: %w", err)
 	}
 
@@ -159,7 +159,7 @@ func (u *Uploader) OffloadFile(ctx context.Context, name string, chatID string) 
 		return fmt.Errorf("update local metadata: %w", err)
 	}
 
-	if err := u.backupMetadata(ctx, chatID); err != nil {
+	if err := u.BackupMetadata(ctx, chatID); err != nil {
 		rec.State = model.StateLocal
 		_ = u.Store.Update(ctx, rec)
 		return err
@@ -236,7 +236,7 @@ func (u *Uploader) DownloadFile(
 		return fmt.Errorf("update metadata: %w", err)
 	}
 
-	if err := u.backupMetadata(ctx, chatID); err != nil {
+	if err := u.BackupMetadata(ctx, chatID); err != nil {
 		rec.State = model.StateLocal
 		_ = u.Store.Update(ctx, rec)
 		return err

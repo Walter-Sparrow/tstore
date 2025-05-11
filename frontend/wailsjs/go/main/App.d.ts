@@ -23,4 +23,6 @@ export function ToggleFullscreen():Promise<void>;
 
 export function UpdateConfig(arg1:config.Config):Promise<void>;
 
+export function UpdateDescription(arg1:string,arg2:string):Promise<void>;
+
 export function UploadFile(arg1:string):Promise<string>;

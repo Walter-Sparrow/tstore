@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
+	"time"
 	"tstore/internal/config"
 	"tstore/internal/metadata"
 	"tstore/internal/telegram"
@@ -14,12 +16,16 @@ import (
 )
 
 type App struct {
-	ctx      context.Context
-	cfg      *config.Config
-	uploader *telegram.Uploader
-	client   *telegram.Client
-	store    metadata.Store
+	ctx            context.Context
+	cfg            *config.Config
+	uploader       *telegram.Uploader
+	client         *telegram.Client
+	store          metadata.Store
+	backupTickerMu sync.Mutex
+	backupTimer    *time.Timer
 }
+
+const DEBOUNCE_DURATION = time.Minute
 
 func (a *App) initServices() error {
 	newCfg, err := config.LoadConfig()
@@ -62,6 +68,20 @@ func (a *App) startup(ctx context.Context) {
 
 	if err := a.store.Load(ctx, reader); err != nil {
 		log.Fatalf("failed to load metadata: %v", err)
+	}
+}
+
+func (a *App) shutdown(ctx context.Context) {
+	a.backupTickerMu.Lock()
+	timer := a.backupTimer
+	a.backupTimer = nil
+	a.backupTickerMu.Unlock()
+
+	if timer != nil {
+		timer.Stop()
+		if err := a.uploader.BackupMetadata(a.ctx, a.cfg.ChatID); err != nil {
+			log.Printf("final metadata backup failed: %v", err)
+		}
 	}
 }
 
@@ -158,5 +178,40 @@ func (a *App) OffloadFile(name string) error {
 func (a *App) DownloadFile(name string) error {
 	return a.uploader.DownloadFile(a.ctx, name, a.cfg.ChatID, func(p float64) {
 		runtime.EventsEmit(a.ctx, fmt.Sprintf("downloadProgress/%s", name), p)
+	})
+}
+
+func (a *App) UpdateDescription(name, description string) error {
+	rec, err := a.store.Get(a.ctx, name)
+	if err != nil {
+		return fmt.Errorf("lookup %q: %w", name, err)
+	}
+
+	rec.Description = description
+	if err := a.store.Update(a.ctx, rec); err != nil {
+		return fmt.Errorf("update metadata: %w", err)
+	}
+
+	a.scheduleBackup()
+	return nil
+}
+
+func (a *App) scheduleBackup() {
+	a.backupTickerMu.Lock()
+	defer a.backupTickerMu.Unlock()
+
+	if a.backupTimer != nil {
+		a.backupTimer.Stop()
+	}
+	a.backupTimer = time.AfterFunc(DEBOUNCE_DURATION, func() {
+		a.backupTickerMu.Lock()
+		a.backupTimer = nil
+		a.backupTickerMu.Unlock()
+
+		if err := a.uploader.BackupMetadata(a.ctx, a.cfg.ChatID); err != nil {
+			log.Printf("metadata backup failed: %v", err)
+		} else {
+			log.Println("metadata backed up successfully")
+		}
 	})
 }
