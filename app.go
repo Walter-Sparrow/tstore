@@ -97,6 +97,12 @@ func (a *App) startup(ctx context.Context) {
 	}()
 
 	go func() {
+		backup := func(ctx context.Context) {
+			if err := a.uploader.BackupMetadata(ctx, a.cfg.ChatID); err != nil {
+				log.Printf("metadata backup failed: %v", err)
+			}
+		}
+
 		err := tsync.StartSyncWatcher(
 			a.ctx,
 			a.cfg.SyncFolder,
@@ -104,9 +110,8 @@ func (a *App) startup(ctx context.Context) {
 			func(ctx context.Context, path, name string) {
 				jobCh <- syncJob{Path: path, Name: name}
 			},
-			func(ctx context.Context) {
-				a.uploader.BackupMetadata(ctx, a.cfg.ChatID)
-			},
+			backup,
+			backup,
 		)
 		if err != nil {
 			log.Printf("failed to start sync watcher: %v", err)

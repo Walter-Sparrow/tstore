@@ -47,8 +47,13 @@ export function FilesProvider({ children }: PropsWithChildren) {
     const unsub = EventsOn("fileRenamed", () =>
       queryClient.invalidateQueries({ queryKey: ["files"] })
     );
+    const unsub2 = EventsOn("fileRemoved", () =>
+      queryClient.invalidateQueries({ queryKey: ["files"] })
+    );
+
     return () => {
       unsub();
+      unsub2();
       queryClient.invalidateQueries({ queryKey: ["files"] });
     };
   }, []);

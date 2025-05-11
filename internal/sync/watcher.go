@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 	"tstore/internal/metadata"
+	"tstore/pkg/model"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -21,6 +22,7 @@ func StartSyncWatcher(
 	store metadata.Store,
 	onDetect func(ctx context.Context, path, name string),
 	onRename func(ctx context.Context),
+	onRemove func(ctx context.Context),
 ) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -44,10 +46,25 @@ func StartSyncWatcher(
 					return
 				}
 
-				if ev.Op&(fsnotify.Create|fsnotify.Write|fsnotify.Rename) == 0 {
+				if ev.Op&fsnotify.Remove != 0 {
+					if filepath.Ext(ev.Name) != ".tmp" {
+						base := filepath.Base(ev.Name)
+						mu.Lock()
+						rec, err := store.Get(ctx, base)
+						if err == nil {
+							rec.State = model.StateCloud
+							store.Update(ctx, rec)
+							runtime.EventsEmit(ctx, "fileRemoved", base)
+							onRemove(ctx)
+						}
+						mu.Unlock()
+					}
 					continue
 				}
 
+				if ev.Op&(fsnotify.Create|fsnotify.Write|fsnotify.Rename) == 0 {
+					continue
+				}
 				if filepath.Ext(ev.Name) == ".tmp" {
 					continue
 				}
@@ -75,26 +92,15 @@ func StartSyncWatcher(
 				if ev.Op&fsnotify.Create != 0 && pendingRename != "" {
 					old := pendingRename
 					pendingRename = ""
-
 					rec, err := store.Get(ctx, old)
-					if err != nil {
-						log.Printf("watcher rename: old record %q not found: %v", old, err)
-						mu.Unlock()
-						continue
+					if err == nil {
+						store.Delete(ctx, old)
+						rec.Name = base
+						if err := store.Create(ctx, rec); err == nil {
+							runtime.EventsEmit(ctx, "fileRenamed", old, base)
+							onRename(ctx)
+						}
 					}
-
-					if err := store.Delete(ctx, old); err != nil {
-						log.Printf("watcher rename: failed to delete old metadata %q: %v", old, err)
-					}
-
-					rec.Name = base
-					if err := store.Create(ctx, rec); err != nil {
-						log.Printf("watcher rename: failed to create new metadata %q: %v", base, err)
-					} else {
-						runtime.EventsEmit(ctx, "fileRenamed", old, base)
-						onRename(ctx)
-					}
-
 					mu.Unlock()
 					continue
 				}
