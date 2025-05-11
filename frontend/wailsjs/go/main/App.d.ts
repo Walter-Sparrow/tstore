@@ -5,6 +5,8 @@ import {model} from '../models';
 
 export function Close():Promise<void>;
 
+export function DeleteFile(arg1:string):Promise<void>;
+
 export function DownloadFile(arg1:string):Promise<void>;
 
 export function GetConfig():Promise<config.Config>;

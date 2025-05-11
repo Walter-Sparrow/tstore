@@ -244,3 +244,29 @@ func (u *Uploader) DownloadFile(
 
 	return nil
 }
+
+func (u *Uploader) DeleteFile(ctx context.Context, name string, chatID string) error {
+	rec, err := u.Store.Get(ctx, name)
+	if err != nil {
+		return fmt.Errorf("lookup %q: %w", name, err)
+	}
+
+	path := filepath.Join(u.SyncFolder, rec.Name)
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("delete local file %q: %w", path, err)
+	}
+
+	if err := u.Store.Delete(ctx, name); err != nil {
+		return fmt.Errorf("delete metadata for %q: %w", name, err)
+	}
+
+	if err := u.BackupMetadata(ctx, chatID); err != nil {
+		rec.State = model.StateCloud
+		if err2 := u.Store.Create(ctx, rec); err2 != nil {
+			return fmt.Errorf("backup failed: %v; rollback failed: %w", err, err2)
+		}
+		return fmt.Errorf("backup metadata failed: %w", err)
+	}
+
+	return nil
+}

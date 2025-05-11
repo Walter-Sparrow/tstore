@@ -215,3 +215,7 @@ func (a *App) scheduleBackup() {
 		}
 	})
 }
+
+func (a *App) DeleteFile(name string) error {
+	return a.uploader.DeleteFile(a.ctx, name, a.cfg.ChatID)
+}

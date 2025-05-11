@@ -9,10 +9,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { model } from "../../../../../wailsjs/go/models";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { DownloadFile, OffloadFile } from "../../../../../wailsjs/go/main/App";
+import {
+  DeleteFile,
+  DownloadFile,
+  OffloadFile,
+} from "../../../../../wailsjs/go/main/App";
 import { toast } from "sonner";
 import { useState } from "react";
 import { EventsOn } from "../../../../../wailsjs/runtime/runtime";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   file: model.FileRecord;
@@ -56,7 +71,20 @@ export function FileDropdown({ file, icon = <MoreHorizontal /> }: Props) {
       });
   };
 
-  if (isOffloading) {
+  const [showAlert, setShowAlert] = useState(false);
+  const { mutateAsync: deleteFile, isPending: isDeleting } = useMutation({
+    mutationFn: DeleteFile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+    },
+  });
+
+  const handleDelete: React.MouseEventHandler = (e) => {
+    e.stopPropagation();
+    deleteFile(file.name).catch((err) => toast.error(err.message));
+  };
+
+  if (isOffloading || isDeleting) {
     return <Loader className="h-9 w-4 text-primary shrink-0 animate-spin" />;
   }
 
@@ -70,27 +98,51 @@ export function FileDropdown({ file, icon = <MoreHorizontal /> }: Props) {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <span className="sr-only">Open menu</span>
-          {icon}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {file.state === model.FileState.local ? (
-          <DropdownMenuItem onClick={handleOffload}>Offload</DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem onClick={handleDownload}>Download</DropdownMenuItem>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={(e) => e.stopPropagation()}
-          variant="destructive"
-        >
-          Remove
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <span className="sr-only">Open menu</span>
+            {icon}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {file.state === model.FileState.local ? (
+            <DropdownMenuItem onClick={handleOffload}>Offload</DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={handleDownload}>
+              Download
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowAlert(true);
+            }}
+            variant="destructive"
+          >
+            Remove
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <AlertDialog open={showAlert} onOpenChange={setShowAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your
+              account and remove your data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
