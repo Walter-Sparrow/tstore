@@ -104,6 +104,9 @@ func (a *App) startup(ctx context.Context) {
 			func(ctx context.Context, path, name string) {
 				jobCh <- syncJob{Path: path, Name: name}
 			},
+			func(ctx context.Context) {
+				a.uploader.BackupMetadata(ctx, a.cfg.ChatID)
+			},
 		)
 		if err != nil {
 			log.Printf("failed to start sync watcher: %v", err)
