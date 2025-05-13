@@ -1,15 +1,11 @@
 import {
   Cloud,
-  DownloadCloud,
   File,
   HardDrive,
   Info,
   PanelRightClose,
   PanelRightOpen,
   Search,
-  Trash2,
-  UploadCloud,
-  X,
 } from "lucide-react";
 import { columns } from "@/features/file/libs/table";
 import {
@@ -28,6 +24,7 @@ import { UploadButton } from "../upload-button";
 import { useFilesContext } from "@/lib/files-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { model } from "../../../../../wailsjs/go/models";
+import { GroupButtons } from "../group-buttons";
 
 interface Props {
   collapsed: boolean;
@@ -40,6 +37,8 @@ export function Files({ collapsed, onCollapse }: Props) {
 
   const { files, selectedFile, selectedRows, setSelectedRows } =
     useFilesContext();
+
+  const hasSelectedRows = Object.keys(selectedRows).length > 0;
 
   const [cloudSize, localSize] = useMemo(
     () =>
@@ -68,7 +67,7 @@ export function Files({ collapsed, onCollapse }: Props) {
   );
 
   return (
-    <Card className="w-full h-full pt-3 gap-2 flex-2 relative">
+    <Card className="w-full h-full pt-3 gap-2 flex-2 relative overflow-hidden">
       <CardHeader className="flex flex-row justify-between px-3">
         <div className="flex items-center gap-2">
           <UploadButton />
@@ -84,27 +83,10 @@ export function Files({ collapsed, onCollapse }: Props) {
         </div>
         <div className="flex flex-row items-center space-x-2">
           {Object.keys(selectedRows).length > 0 ? (
-            <>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setSelectedRows({})}
-              >
-                <X />
-              </Button>
-              <Button variant="outline">
-                <DownloadCloud />
-                Download
-              </Button>
-              <Button variant="outline">
-                <UploadCloud />
-                Offload
-              </Button>
-              <Button variant="destructive">
-                <Trash2 />
-                Remove
-              </Button>
-            </>
+            <GroupButtons
+              selectedRows={selectedRows}
+              setSelectedRows={setSelectedRows}
+            />
           ) : (
             <>
               <ViewSwitch value={view} onChange={setView} />
@@ -118,7 +100,10 @@ export function Files({ collapsed, onCollapse }: Props) {
       <CardContent className="px-[14px] pb-[14px] flex-1 overflow-hidden">
         <ScrollArea className="h-full w-full mb-1">
           {view === "list" ? (
-            <DataTable data={filteredFiles} columns={columns} />
+            <DataTable
+              data={filteredFiles}
+              columns={columns(hasSelectedRows)}
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2 pr-4 mb-4">
               {filteredFiles.map((file) => (

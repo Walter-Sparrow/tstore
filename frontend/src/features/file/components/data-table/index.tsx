@@ -70,7 +70,7 @@ export function DataTable<TValue>({ data, columns }: DataTableProps<TValue>) {
               return (
                 <TableRow
                   key={row.id}
-                  className={cx("rounded-b-xl border-b-0 group", {
+                  className={cx("h-[69px] rounded-b-xl border-b-0 group", {
                     "!bg-purple-50": row.original.name === selectedFile,
                   })}
                   data-state={row.getIsSelected() && "selected"}

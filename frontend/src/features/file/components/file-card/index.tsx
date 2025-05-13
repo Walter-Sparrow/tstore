@@ -6,6 +6,7 @@ import { CheckedState } from "@radix-ui/react-checkbox";
 import { FileDropdown } from "../file-dropdown";
 import { model } from "../../../../../wailsjs/go/models";
 import { useFilesContext } from "@/lib/files-context";
+import { cx } from "class-variance-authority";
 
 interface Props {
   file: model.FileRecord;
@@ -14,7 +15,8 @@ interface Props {
 }
 
 export function FileCard({ file, detailsOpened, selected }: Props) {
-  const { setSelectedRows, selectFile } = useFilesContext();
+  const { selectedRows, setSelectedRows, selectFile } = useFilesContext();
+  const hasSelected = Object.keys(selectedRows).length > 0;
 
   const handleCheckboxChange = (state: CheckedState) => {
     if (state === true) {
@@ -75,11 +77,16 @@ export function FileCard({ file, detailsOpened, selected }: Props) {
           </div>
           <div className="flex items-center gap-2">
             <Checkbox
+              className={cx({
+                "mr-2": hasSelected,
+              })}
               checked={selected}
               onClick={(e) => e.stopPropagation()}
               onCheckedChange={handleCheckboxChange}
             />
-            <FileDropdown file={file} icon={<MoreVertical />} />
+            {!hasSelected && (
+              <FileDropdown file={file} icon={<MoreVertical />} />
+            )}
           </div>
         </div>
         <h3 className="font-medium">{file.name}</h3>
