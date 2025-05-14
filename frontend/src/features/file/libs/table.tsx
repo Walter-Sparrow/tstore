@@ -5,7 +5,7 @@ import { Cloud, File as FileIcon, HardDrive } from "lucide-react";
 import { FileDropdown } from "../components/file-dropdown";
 import { model } from "../../../../wailsjs/go/models";
 
-export const columns = (
+export const getColumns = (
   hasSelectedRows: boolean
 ): ColumnDef<model.FileRecord>[] => [
   {

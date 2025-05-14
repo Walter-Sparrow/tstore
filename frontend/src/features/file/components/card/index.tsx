@@ -7,7 +7,7 @@ import {
   PanelRightOpen,
   Search,
 } from "lucide-react";
-import { columns } from "@/features/file/libs/table";
+import { getColumns } from "@/features/file/libs/table";
 import {
   Card,
   CardContent,
@@ -66,6 +66,8 @@ export function Files({ collapsed, onCollapse }: Props) {
     [files, filter]
   );
 
+  const columns = useMemo(() => getColumns(hasSelectedRows), [hasSelectedRows]);
+
   return (
     <Card className="w-full h-full pt-3 gap-2 flex-2 relative overflow-hidden">
       <CardHeader className="flex flex-row justify-between px-3">
@@ -100,10 +102,7 @@ export function Files({ collapsed, onCollapse }: Props) {
       <CardContent className="px-[14px] pb-[14px] flex-1 overflow-hidden">
         <ScrollArea className="h-full w-full mb-1">
           {view === "list" ? (
-            <DataTable
-              data={filteredFiles}
-              columns={columns(hasSelectedRows)}
-            />
+            <DataTable data={filteredFiles} columns={columns} />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2 pr-4 mb-4">
               {filteredFiles.map((file) => (
