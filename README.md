@@ -1,19 +1,46 @@
-# README
+# tstore
 
-## About
+**tstore** — кроссплатформенное desktop-приложение на Go + Wails.  
+Главная идея — использовать **Telegram Bot API** как фактически безлимитное облако
+для надёжной передачи и синхронизации больших файлов между облаком и
+локальной «папкой данных».
 
-This is the official Wails React-TS template.
+---
 
-You can configure the project by editing `wails.json`. More information about the project settings can be found
-here: https://wails.io/docs/reference/project-config
+## Основные возможности
 
-## Live Development
+- Передача файлов объёмом от нескольких МБ до десятков ГБ через Bot API
+- Автоматическая фрагментация файла на блоки фиксированного размера
+- Двусторонняя синхронизация между облаком Telegram и локальной папкой
+- «Выгрузка» (_Offload_) — удаление локальной копии без потери в облаке
+- «Скачать обратно» (_Download_) — сборка блоков в исходный файл
+- Мониторинг изменений в папке синхронизации (`fsnotify`)
+- Резервное копирование `metadata.json` в закреплённом сообщении Telegram
+- Кроссплатформенность: **Windows / macOS / Linux**
 
-To run in live development mode, run `wails dev` in the project directory. This will run a Vite development
-server that will provide very fast hot reload of your frontend changes. If you want to develop in a browser
-and have access to your Go methods, there is also a dev server that runs on http://localhost:34115. Connect
-to this in your browser, and you can call your Go code from devtools.
+---
 
-## Building
+## Быстрый старт
 
-To build a redistributable, production mode package, use `wails build`.
+> **Требования**
+>
+> - Go 1.22+
+> - Node 18+ и npm / pnpm (для фронтенда)
+> - Wails v2.10+ (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
+
+```bash
+# 1. Клонируем репозиторий
+git clone git@github.com:Walter-Sparrow/tstore.git
+cd tstore
+
+# 2. Устанавливаем зависимости фронтенда
+cd frontend
+npm install          # или pnpm install
+cd ..
+
+# 3. Сборка desktop-приложения
+wails build          # выполняет go build + сборку React
+
+# 4. Запуск в dev-режиме (горячая перезагрузка)
+wails dev
+```
